@@ -34,7 +34,8 @@ A comprehensive IT Inventory Management System built with React, Express.js, and
 
 ### Backend
 - **Express.js** - REST API server
-- **SQLite3** - Database
+- **PostgreSQL** - Primary database (production)
+- **SQLite3** - Alternative database (local development)
 - **CORS** - Cross-origin resource sharing
 
 ## 📋 Prerequisites
@@ -43,6 +44,8 @@ A comprehensive IT Inventory Management System built with React, Express.js, and
 - **npm** (comes with Node.js)
 
 ## 🚀 Installation & Setup
+
+### Local Development (PostgreSQL)
 
 1. **Clone the repository**
    ```bash
@@ -55,7 +58,18 @@ A comprehensive IT Inventory Management System built with React, Express.js, and
    npm install
    ```
 
-3. **Run the application**
+3. **Set up PostgreSQL database**
+   - Install PostgreSQL on your machine (https://www.postgresql.org/download/)
+   - Create a database:
+     ```sql
+     CREATE DATABASE inventory_db;
+     ```
+   - Copy `env.template` to `.env` and update the `DATABASE_URL`:
+     ```
+     DATABASE_URL=postgresql://your_username:your_password@localhost:5432/inventory_db
+     ```
+
+4. **Run the application**
    ```bash
    npm run dev
    ```
@@ -64,8 +78,20 @@ A comprehensive IT Inventory Management System built with React, Express.js, and
    - Frontend (Vite dev server) on `http://localhost:3000`
    - Backend (Express API server) on `http://localhost:3001`
 
-4. **Access the application**
+5. **Access the application**
    - Open your browser and navigate to `http://localhost:3000`
+
+### Alternative: Local Development with SQLite
+
+If you prefer to use SQLite for local development:
+
+```bash
+# Use the SQLite server
+npm run dev:server:sqlite
+
+# In another terminal
+npm run dev:client
+```
 
 ## 📁 Project Structure
 
@@ -125,20 +151,85 @@ tds-it-inventory/
 
 Similar endpoints exist for `/api/keyboardlogs` and `/api/ssdlogs`
 
+## ☁️ Deployment to Vercel
+
+### Step 1: Create a Vercel Account
+1. Go to [vercel.com](https://vercel.com) and sign up/login with GitHub
+
+### Step 2: Set Up PostgreSQL Database
+1. In your Vercel dashboard, go to **Storage** tab
+2. Click **Create Database** and select **Postgres**
+3. Follow the setup wizard and note your database credentials
+4. Alternatively, use any PostgreSQL provider (Supabase, Railway, Neon, etc.)
+
+### Step 3: Deploy to Vercel
+1. **Push your code to GitHub** (if not already done):
+   ```bash
+   git add .
+   git commit -m "Ready for Vercel deployment"
+   git push origin main
+   ```
+
+2. **Import Project to Vercel**:
+   - Go to your Vercel dashboard
+   - Click **Add New** → **Project**
+   - Import your GitHub repository
+   - Configure the project:
+     - **Framework Preset**: Vite
+     - **Build Command**: `npm run vercel-build`
+     - **Output Directory**: `dist`
+
+3. **Add Environment Variables**:
+   In Vercel project settings → Environment Variables, add:
+   ```
+   DATABASE_URL=your_postgresql_connection_string
+   POSTGRES_URL=your_postgresql_connection_string
+   NODE_ENV=production
+   ```
+
+4. **Deploy**:
+   - Click **Deploy**
+   - Vercel will build and deploy your app
+   - You'll get a URL like `https://your-project.vercel.app`
+
+### Step 4: Verify Deployment
+- Visit your deployed URL
+- Check that all pages load correctly
+- Test database operations (add/edit/delete entries)
+
+### Updating Your Deployment
+```bash
+# Make changes to your code
+git add .
+git commit -m "Your changes"
+git push origin main
+
+# Vercel will automatically redeploy!
+```
+
 ## 📝 Scripts
 
 ```bash
-# Run development servers (frontend + backend)
+# Run development servers (frontend + backend with PostgreSQL)
 npm run dev
+
+# Run development with SQLite
+npm run dev:server:sqlite & npm run dev:client
 
 # Run only frontend (Vite)
 npm run dev:client
 
-# Run only backend (Express)
+# Run only backend (Express with PostgreSQL)
 npm run dev:server
+
+# Start production server
+npm start
 
 # Build for production
 npm run build
+
+# Vercel build
+npm run vercel-build
 
 # Preview production build
 npm run preview
@@ -146,16 +237,28 @@ npm run preview
 
 ## 🗄️ Database
 
-The application uses SQLite for data storage. The database file (`database.db`) is created automatically on first run with the following tables:
+The application supports two database options:
 
+### PostgreSQL (Production - Recommended)
+- Used in production and Vercel deployments
+- Better scalability and concurrent access
+- Automatic table creation on first connection
+- Configure via `DATABASE_URL` or `POSTGRES_URL` environment variable
+
+### SQLite (Local Development)
+- Lightweight option for local development
+- Database file (`database.db`) created automatically
+- No setup required
+
+### Database Tables
 - `pcs` - Desktop computer information
-- `laptops` - Laptop information
+- `laptops` - Laptop information (includes username field)
 - `servers` - Server information
 - `mouseLogs` - Mouse distribution logs
 - `keyboardLogs` - Keyboard distribution logs
 - `ssdLogs` - SSD distribution logs
 
-**Note**: The database file is excluded from Git (via `.gitignore`) to prevent committing sensitive data.
+**Note**: Database files are excluded from Git (via `.gitignore`) to prevent committing sensitive data.
 
 ## 🔒 Security Notes
 
