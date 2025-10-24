@@ -15,11 +15,32 @@ export default function Login() {
         setError('');
         setLoading(true);
 
+        // Basic validation
+        if (!username.trim()) {
+            setError('Please enter your username');
+            setLoading(false);
+            return;
+        }
+
+        if (!password.trim()) {
+            setError('Please enter your password');
+            setLoading(false);
+            return;
+        }
+
         try {
             await login(username, password);
             navigate('/');
         } catch (err: any) {
-            setError(err.message || 'Login failed. Please check your credentials.');
+            console.error('Login error:', err);
+            // Show specific error message
+            if (err.message.includes('Invalid credentials')) {
+                setError('❌ Invalid username or password. Please try again.');
+            } else if (err.message.includes('fetch')) {
+                setError('🔌 Unable to connect to server. Please check your connection.');
+            } else {
+                setError(err.message || '⚠️ Login failed. Please check your credentials and try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -41,11 +62,14 @@ export default function Login() {
 
                 {/* Error Message */}
                 {error && (
-                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
-                        <svg className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <div className="mb-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg flex items-start animate-shake">
+                        <svg className="w-6 h-6 text-red-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                         </svg>
-                        <span className="text-red-800 text-sm">{error}</span>
+                        <div className="flex-1">
+                            <p className="text-red-800 font-semibold text-sm">{error}</p>
+                            <p className="text-red-600 text-xs mt-1">Please check your username and password and try again.</p>
+                        </div>
                     </div>
                 )}
 
@@ -109,10 +133,25 @@ export default function Login() {
 
                 {/* Default Credentials Info */}
                 <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800 font-medium mb-1">Default Admin Credentials:</p>
-                    <p className="text-xs text-blue-700">Username: <span className="font-mono bg-blue-100 px-2 py-0.5 rounded">admin</span></p>
-                    <p className="text-xs text-blue-700">Password: <span className="font-mono bg-blue-100 px-2 py-0.5 rounded">admin123</span></p>
-                    <p className="text-xs text-blue-600 mt-2">⚠️ Please change the password after first login</p>
+                    <p className="text-sm text-blue-800 font-medium mb-2">✅ Valid Credentials for Testing:</p>
+                    <div className="space-y-1">
+                        <p className="text-xs text-blue-700">
+                            Username: <span className="font-mono bg-blue-100 px-2 py-0.5 rounded font-semibold">admin</span>
+                        </p>
+                        <p className="text-xs text-blue-700">
+                            Password: <span className="font-mono bg-blue-100 px-2 py-0.5 rounded font-semibold">admin123</span>
+                        </p>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-3 pt-2 border-t border-blue-200">
+                        ⚠️ Please change the password after first login
+                    </p>
+                </div>
+
+                {/* Test Invalid Credentials Info */}
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-800 font-medium mb-1">🧪 Test Invalid Login:</p>
+                    <p className="text-xs text-amber-700">Try entering wrong credentials to see the error message</p>
+                    <p className="text-xs text-amber-600 mt-1">Example: username "test" with any password will show error</p>
                 </div>
             </div>
         </div>
