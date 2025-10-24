@@ -1,0 +1,5 @@
+{
+  "name": "Copy of TDS IT Inventory",
+  "description": "A web application to track and manage IT hardware assets, including PCs, laptops, servers, and peripherals. It provides dashboards, data logs, and department-wise asset summaries, replacing an existing Excel-based system.",
+  "requestFramePermissions": []
+}

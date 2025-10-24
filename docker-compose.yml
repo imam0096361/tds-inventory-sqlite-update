@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  it-inventory-app:
+    build: .
+    container_name: it-inventory-frontend
+    restart: unless-stopped
+    ports:
+      # Map port 8888 on the host machine to port 80 inside the container
+      - "8888:80"
