@@ -11,8 +11,17 @@ export const exportToCSV = <T extends object>(data: T[], filename: string) => {
             headers
                 .map(header => {
                     const value = (item as any)[header];
-                    // Handle null/undefined, escape double quotes, and wrap if necessary
-                    let stringValue = String(value ?? '').replace(/"/g, '""');
+                    
+                    // Handle objects (like customFields) by converting to JSON string
+                    let stringValue: string;
+                    if (typeof value === 'object' && value !== null) {
+                        stringValue = JSON.stringify(value).replace(/"/g, '""');
+                    } else {
+                        // Handle null/undefined, escape double quotes
+                        stringValue = String(value ?? '').replace(/"/g, '""');
+                    }
+                    
+                    // Wrap if necessary
                     if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
                         stringValue = `"${stringValue}"`;
                     }
