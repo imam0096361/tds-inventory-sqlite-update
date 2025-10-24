@@ -65,18 +65,38 @@ export const ImportModal = <T extends object>({
       const headerRow = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
       const dataRows = rows.slice(1);
 
-      // Basic header validation
-      if (JSON.stringify(headerRow) !== JSON.stringify(templateHeaders)) {
-         throw new Error(`Invalid CSV headers. Expected: ${templateHeaders.join(', ')}. Found: ${headerRow.join(', ')}.`);
+      // Flexible header validation - check if required fields are present
+      const missingHeaders = templateHeaders.filter(h => !headerRow.includes(h));
+      if (missingHeaders.length > 0) {
+         throw new Error(`Missing required CSV headers: ${missingHeaders.join(', ')}. Found: ${headerRow.join(', ')}.`);
       }
 
       const parsedData = dataRows.map(row => {
         const values = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); // handle commas inside quotes
         const entry: Record<string, any> = {};
-        templateHeaders.forEach((header, index) => {
+        
+        // Map values to headers based on position
+        headerRow.forEach((header, index) => {
           entry[header] = values[index]?.trim().replace(/"/g, '') || '';
         });
-        return entry as T;
+        
+        // Only keep the fields defined in templateHeaders (plus id and customFields if present)
+        const filteredEntry: Record<string, any> = {};
+        templateHeaders.forEach(header => {
+          filteredEntry[header] = entry[header];
+        });
+        
+        // Preserve id and customFields if they exist in the import
+        if (entry.id) filteredEntry.id = entry.id;
+        if (entry.customFields) {
+          try {
+            filteredEntry.customFields = JSON.parse(entry.customFields);
+          } catch {
+            filteredEntry.customFields = {};
+          }
+        }
+        
+        return filteredEntry as T;
       });
 
       const result = onImport(parsedData);
