@@ -130,29 +130,6 @@ export default function Login() {
                         )}
                     </button>
                 </form>
-
-                {/* Default Credentials Info */}
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800 font-medium mb-2">✅ Valid Credentials for Testing:</p>
-                    <div className="space-y-1">
-                        <p className="text-xs text-blue-700">
-                            Username: <span className="font-mono bg-blue-100 px-2 py-0.5 rounded font-semibold">admin</span>
-                        </p>
-                        <p className="text-xs text-blue-700">
-                            Password: <span className="font-mono bg-blue-100 px-2 py-0.5 rounded font-semibold">admin123</span>
-                        </p>
-                    </div>
-                    <p className="text-xs text-blue-600 mt-3 pt-2 border-t border-blue-200">
-                        ⚠️ Please change the password after first login
-                    </p>
-                </div>
-
-                {/* Test Invalid Credentials Info */}
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-800 font-medium mb-1">🧪 Test Invalid Login:</p>
-                    <p className="text-xs text-amber-700">Try entering wrong credentials to see the error message</p>
-                    <p className="text-xs text-amber-600 mt-1">Example: username "test" with any password will show error</p>
-                </div>
             </div>
         </div>
     );
