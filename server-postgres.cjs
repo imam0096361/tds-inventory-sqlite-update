@@ -4,6 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -676,6 +677,165 @@ app.delete('/api/ssdlogs/:id', async (req, res) => {
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', database: 'postgresql' });
+});
+
+// ==========================================
+// AI ASSISTANT ENDPOINT
+// ==========================================
+
+// Initialize Gemini AI (only if API key is provided)
+let genAI = null;
+if (process.env.GEMINI_API_KEY && process.env.AI_ENABLED === 'true') {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    console.log('✅ Gemini AI initialized');
+}
+
+// AI Query Endpoint
+app.post('/api/ai-query', authenticateToken, async (req, res) => {
+    const { query } = req.body;
+
+    if (!query) {
+        return res.status(400).json({ success: false, error: 'Query is required' });
+    }
+
+    // Check if AI is enabled
+    if (!genAI || process.env.AI_ENABLED !== 'true') {
+        return res.status(503).json({ 
+            success: false, 
+            error: 'AI Assistant is not enabled. Please configure GEMINI_API_KEY in environment variables.' 
+        });
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+        // Create a detailed prompt for Gemini
+        const prompt = `You are an IT inventory database assistant. Convert the following natural language query into a structured JSON response that can be used to query a PostgreSQL database.
+
+Available tables and their columns:
+1. pcs: department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status (OK/NO/Repair), floor (5/6/7)
+2. laptops: pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus (Good/Battery Problem/Platform Problem)
+3. servers: serverID, brand, model, cpu, totalCores, ram, storage, raid, status (Online/Offline/Maintenance), department
+4. mouselogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
+5. keyboardlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
+6. ssdlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
+
+User Query: "${query}"
+
+Respond ONLY with a valid JSON object (no markdown, no explanation) in this exact format:
+{
+  "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs",
+  "filters": {
+    "fieldName": { "operator": "equals" | "contains" | "greaterThan" | "lessThan", "value": "..." }
+  },
+  "interpretation": "A brief explanation of what you understood from the query"
+}
+
+Examples:
+Query: "Show me all PCs with Core i7 and 8GB RAM"
+Response: {"module":"pcs","filters":{"cpu":{"operator":"contains","value":"Core i7"},"ram":{"operator":"contains","value":"8 GB"}},"interpretation":"Finding all PCs with Core i7 processor and 8GB RAM"}
+
+Query: "Find laptops in HR department with battery problems"
+Response: {"module":"laptops","filters":{"department":{"operator":"equals","value":"HR"},"hardwareStatus":{"operator":"equals","value":"Battery Problem"}},"interpretation":"Finding laptops in HR department that have battery issues"}
+
+Query: "List all servers that are offline"
+Response: {"module":"servers","filters":{"status":{"operator":"equals","value":"Offline"}},"interpretation":"Finding all servers with offline status"}`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let aiResponse = response.text();
+
+        // Clean up the response (remove markdown if present)
+        aiResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+        // Parse AI response
+        const parsedResponse = JSON.parse(aiResponse);
+        const { module, filters, interpretation } = parsedResponse;
+
+        // Build SQL query based on AI response
+        let tableName;
+        switch (module) {
+            case 'pcs':
+                tableName = 'pcs';
+                break;
+            case 'laptops':
+                tableName = 'laptops';
+                break;
+            case 'servers':
+                tableName = 'servers';
+                break;
+            case 'mouselogs':
+                tableName = '"mouseLogs"';
+                break;
+            case 'keyboardlogs':
+                tableName = '"keyboardLogs"';
+                break;
+            case 'ssdlogs':
+                tableName = '"ssdLogs"';
+                break;
+            default:
+                throw new Error('Invalid module specified');
+        }
+
+        // Build WHERE clause
+        const conditions = [];
+        const values = [];
+        let paramIndex = 1;
+
+        if (filters) {
+            for (const [field, filterDef] of Object.entries(filters)) {
+                const { operator, value } = filterDef;
+
+                switch (operator) {
+                    case 'equals':
+                        conditions.push(`"${field}" = $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                    case 'contains':
+                        conditions.push(`"${field}" ILIKE $${paramIndex}`);
+                        values.push(`%${value}%`);
+                        paramIndex++;
+                        break;
+                    case 'greaterThan':
+                        conditions.push(`"${field}" > $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                    case 'lessThan':
+                        conditions.push(`"${field}" < $${paramIndex}`);
+                        values.push(value);
+                        paramIndex++;
+                        break;
+                }
+            }
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+        const sqlQuery = `SELECT * FROM ${tableName} ${whereClause}`;
+
+        console.log('Executing SQL:', sqlQuery, 'with values:', values);
+
+        // Execute query
+        const dbResult = await pool.query(sqlQuery, values);
+
+        res.json({
+            success: true,
+            data: dbResult.rows,
+            module: module,
+            filters: filters,
+            interpretation: interpretation,
+            resultCount: dbResult.rows.length
+        });
+
+    } catch (error) {
+        console.error('AI Query Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to process AI query',
+            details: error.toString()
+        });
+    }
 });
 
 app.listen(port, () => {

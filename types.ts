@@ -1,4 +1,4 @@
-export type Page = 'Dashboard' | 'PC Info' | 'Laptop Info' | 'Server Info' | 'Mouse Log' | 'Keyboard Log' | 'SSD Log' | 'Department Summary' | 'Product Inventory' | 'Settings' | 'User Management';
+export type Page = 'Dashboard' | 'PC Info' | 'Laptop Info' | 'Server Info' | 'Mouse Log' | 'Keyboard Log' | 'SSD Log' | 'Department Summary' | 'Product Inventory' | 'Settings' | 'User Management' | 'AI Assistant';
 
 export interface PeripheralLogEntry {
   id: string;
@@ -83,4 +83,39 @@ export interface BarChartData {
 export interface CustomFieldDef {
   id: string;
   name: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  role: 'admin' | 'user';
+  department?: string;
+  createdAt?: string;
+  lastLogin?: string;
+}
+
+// AI Assistant Types
+export interface AIQueryRequest {
+  query: string;
+  module?: string;
+}
+
+export interface AIQueryResponse {
+  success: boolean;
+  data?: any[];
+  module?: string;
+  filters?: Record<string, any>;
+  error?: string;
+  interpretation?: string;
+  resultCount?: number;
+}
+
+export interface AIQueryHistory {
+  id: string;
+  query: string;
+  timestamp: string;
+  resultCount: number;
+  module?: string;
 }
