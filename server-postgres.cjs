@@ -24,6 +24,27 @@ pool.connect((err, client, release) => {
     }
 });
 
+// Health check endpoint - to verify database connection
+app.get('/api/health', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT NOW()');
+        res.json({ 
+            status: 'OK', 
+            database: 'Connected',
+            timestamp: result.rows[0].now,
+            environment: process.env.NODE_ENV || 'development'
+        });
+    } catch (error) {
+        console.error('Health check failed:', error);
+        res.status(500).json({ 
+            status: 'ERROR', 
+            database: 'Disconnected',
+            error: error.message,
+            environment: process.env.NODE_ENV || 'development'
+        });
+    }
+});
+
 // Initialize database tables
 async function initDatabase() {
     const client = await pool.connect();

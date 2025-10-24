@@ -72,5 +72,7 @@ Last Updated: October 24, 2025
 
 **Connection String**: `postgresql://neondb_owner:npg_VWYJCfilwL47@ep-lively-cloud-a1lfo3j0-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require`
 
+**Health Check Added**: A new health check endpoint has been added at `/api/health` to verify database connectivity in real-time.
+
 This deployment ensures the database works consistently across all devices and platforms.
 
