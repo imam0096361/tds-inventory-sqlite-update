@@ -64,3 +64,13 @@ Your IT Inventory Management System is now deployed to production and accessible
 
 Last Updated: October 24, 2025
 
+---
+
+## 🔄 Latest Update
+
+**Environment Variables Verified**: All database credentials have been updated and verified. Redeployment triggered to ensure all environments are using the correct PostgreSQL connection string.
+
+**Connection String**: `postgresql://neondb_owner:npg_VWYJCfilwL47@ep-lively-cloud-a1lfo3j0-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require`
+
+This deployment ensures the database works consistently across all devices and platforms.
+
