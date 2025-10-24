@@ -37,6 +37,7 @@ export interface ServerInfoEntry {
 export interface LaptopInfoEntry {
   id: string;
   pcName: string;
+  username: string;
   brand: string;
   model: string;
   cpu: string;
@@ -55,6 +56,7 @@ export interface PCInfoEntry {
   department: string;
   ip: string;
   pcName: string;
+  username: string;
   motherboard: string;
   cpu: string;
   ram: string;

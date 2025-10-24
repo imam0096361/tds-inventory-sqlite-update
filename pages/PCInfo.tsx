@@ -15,6 +15,7 @@ const emptyFormState: Omit<PCInfoEntry, 'id'> = {
     department: '',
     ip: '',
     pcName: '',
+    username: '',
     motherboard: '',
     cpu: '',
     ram: '',
@@ -476,6 +477,7 @@ export const PCInfo: React.FC = () => {
                         />
                         {formErrors.ip && <p className="text-red-500 text-xs mt-1">{formErrors.ip}</p>}
                     </div>
+                    <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="User Name" className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
                     <input type="text" name="cpu" value={formData.cpu} onChange={handleChange} placeholder="CPU" className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
                     <input type="text" name="motherboard" value={formData.motherboard} onChange={handleChange} placeholder="Motherboard" className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
                     <input type="text" name="ram" value={formData.ram} onChange={handleChange} placeholder="RAM" className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
@@ -569,8 +571,8 @@ export const PCInfo: React.FC = () => {
                 onClose={() => setIsImportModalOpen(false)}
                 onImport={handleImportPcs}
                 assetName="PCs"
-                templateHeaders={['department', 'ip', 'pcName', 'motherboard', 'cpu', 'ram', 'storage', 'monitor', 'os', 'status', 'floor']}
-                exampleRow={['IT', '192.168.1.100', 'IT-DEV-01', 'ASUS B550', 'Ryzen 5 5600X', '16 GB DDR4', '1 TB NVMe SSD', 'Dell 27"', 'Win 11', 'OK', '7']}
+                templateHeaders={['department', 'ip', 'pcName', 'username', 'motherboard', 'cpu', 'ram', 'storage', 'monitor', 'os', 'status', 'floor']}
+                exampleRow={['IT', '192.168.1.100', 'IT-DEV-01', 'john.doe', 'ASUS B550', 'Ryzen 5 5600X', '16 GB DDR4', '1 TB NVMe SSD', 'Dell 27"', 'Win 11', 'OK', '7']}
             />
 
             <DetailModal 

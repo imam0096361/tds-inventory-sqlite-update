@@ -13,6 +13,7 @@ import { SortableHeader } from '../components/SortableHeader';
 
 const emptyFormState: Omit<LaptopInfoEntry, 'id'> = {
     pcName: '',
+    username: '',
     brand: '',
     model: '',
     cpu: '',
@@ -400,6 +401,7 @@ export const LaptopInfo: React.FC = () => {
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingLaptop ? "Edit Laptop Information" : "Add New Laptop"}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input type="text" name="pcName" value={formData.pcName} onChange={handleChange} placeholder="PC Name" className="p-2 border rounded" />
+                    <input type="text" name="username" value={formData.username} onChange={handleChange} placeholder="User Name" className="p-2 border rounded" />
                     <input type="text" name="brand" value={formData.brand} onChange={handleChange} placeholder="Brand" className="p-2 border rounded" />
                     <input type="text" name="model" value={formData.model} onChange={handleChange} placeholder="Model" className="p-2 border rounded" />
                     <input type="text" name="cpu" value={formData.cpu} onChange={handleChange} placeholder="CPU" className="p-2 border rounded" />
@@ -522,8 +524,8 @@ export const LaptopInfo: React.FC = () => {
                 onClose={() => setIsImportModalOpen(false)}
                 onImport={handleImportLaptops}
                 assetName="Laptops"
-                templateHeaders={['pcName', 'brand', 'model', 'cpu', 'serialNumber', 'ram', 'storage', 'userStatus', 'department', 'date', 'hardwareStatus']}
-                exampleRow={['LT-HR-05', 'HP', 'Elitebook 840', 'Core i7-11th Gen', 'SN12345XYZ', '16 GB', '512 GB SSD', 'GOOD', 'HR', '2023-10-26', 'Good']}
+                templateHeaders={['pcName', 'username', 'brand', 'model', 'cpu', 'serialNumber', 'ram', 'storage', 'userStatus', 'department', 'date', 'hardwareStatus']}
+                exampleRow={['LT-HR-05', 'jane.smith', 'HP', 'Elitebook 840', 'Core i7-11th Gen', 'SN12345XYZ', '16 GB', '512 GB SSD', 'GOOD', 'HR', '2023-10-26', 'Good']}
             />
             
             <DetailModal 

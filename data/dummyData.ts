@@ -7,6 +7,7 @@ export const pcInfoData: PCInfoEntry[] = [
     department: 'IT',
     ip: '192.168.1.10',
     pcName: 'IT-PC-001',
+    username: 'john.doe',
     motherboard: 'ASUS Prime B450M-A',
     cpu: 'AMD Ryzen 5 3600',
     ram: '16GB DDR4',
@@ -21,6 +22,7 @@ export const pcInfoData: PCInfoEntry[] = [
     department: 'HR',
     ip: '192.168.1.15',
     pcName: 'HR-PC-001',
+    username: 'jane.smith',
     motherboard: 'MSI B450M PRO-VDH',
     cpu: 'AMD Ryzen 3 3200G',
     ram: '8GB DDR4',
@@ -35,6 +37,7 @@ export const pcInfoData: PCInfoEntry[] = [
     department: 'Finance',
     ip: '192.168.1.20',
     pcName: 'FIN-PC-001',
+    username: 'mike.johnson',
     motherboard: 'Gigabyte B550M',
     cpu: 'AMD Ryzen 7 5700G',
     ram: '32GB DDR4',
@@ -51,6 +54,7 @@ export const laptopInfoData: LaptopInfoEntry[] = [
   {
     id: '1',
     pcName: 'LAP-IT-001',
+    username: 'john.doe',
     brand: 'Dell',
     model: 'Latitude 5420',
     cpu: 'Intel Core i5-1135G7',
@@ -65,6 +69,7 @@ export const laptopInfoData: LaptopInfoEntry[] = [
   {
     id: '2',
     pcName: 'LAP-HR-001',
+    username: 'jane.smith',
     brand: 'HP',
     model: 'ProBook 450 G8',
     cpu: 'Intel Core i7-1165G7',
@@ -79,6 +84,7 @@ export const laptopInfoData: LaptopInfoEntry[] = [
   {
     id: '3',
     pcName: 'LAP-FIN-001',
+    username: 'mike.johnson',
     brand: 'Lenovo',
     model: 'ThinkPad E14',
     cpu: 'Intel Core i5-1135G7',

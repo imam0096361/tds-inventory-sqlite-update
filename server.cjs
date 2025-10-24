@@ -21,6 +21,7 @@ db.serialize(() => {
         department TEXT,
         ip TEXT,
         pcName TEXT,
+        username TEXT,
         motherboard TEXT,
         cpu TEXT,
         ram TEXT,
@@ -35,6 +36,7 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS laptops (
         id TEXT PRIMARY KEY,
         pcName TEXT,
+        username TEXT,
         brand TEXT,
         model TEXT,
         cpu TEXT,
@@ -114,10 +116,10 @@ app.get('/api/pcs', (req, res) => {
 });
 
 app.post('/api/pcs', (req, res) => {
-    const { id, department, ip, pcName, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
+    const { id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
     const customFieldsJson = JSON.stringify(customFields || {});
-    db.run('INSERT INTO pcs (id, department, ip, pcName, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-        [id, department, ip, pcName, motherboard, cpu, ram, storage, monitor, os, status, floor, customFieldsJson], 
+    db.run('INSERT INTO pcs (id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+        [id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFieldsJson], 
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
@@ -129,10 +131,10 @@ app.post('/api/pcs', (req, res) => {
 });
 
 app.put('/api/pcs/:id', (req, res) => {
-    const { department, ip, pcName, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
+    const { department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
     const customFieldsJson = JSON.stringify(customFields || {});
-    db.run('UPDATE pcs SET department = ?, ip = ?, pcName = ?, motherboard = ?, cpu = ?, ram = ?, storage = ?, monitor = ?, os = ?, status = ?, floor = ?, customFields = ? WHERE id = ?', 
-        [department, ip, pcName, motherboard, cpu, ram, storage, monitor, os, status, floor, customFieldsJson, req.params.id], 
+    db.run('UPDATE pcs SET department = ?, ip = ?, pcName = ?, username = ?, motherboard = ?, cpu = ?, ram = ?, storage = ?, monitor = ?, os = ?, status = ?, floor = ?, customFields = ? WHERE id = ?', 
+        [department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFieldsJson, req.params.id], 
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
@@ -164,10 +166,10 @@ app.get('/api/laptops', (req, res) => {
 });
 
 app.post('/api/laptops', (req, res) => {
-    const { id, pcName, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
+    const { id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
     const customFieldsJson = JSON.stringify(customFields || {});
-    db.run('INSERT INTO laptops (id, pcName, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-        [id, pcName, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFieldsJson], 
+    db.run('INSERT INTO laptops (id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+        [id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFieldsJson], 
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
@@ -179,10 +181,10 @@ app.post('/api/laptops', (req, res) => {
 });
 
 app.put('/api/laptops/:id', (req, res) => {
-    const { pcName, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
+    const { pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
     const customFieldsJson = JSON.stringify(customFields || {});
-    db.run('UPDATE laptops SET pcName = ?, brand = ?, model = ?, cpu = ?, serialNumber = ?, ram = ?, storage = ?, userStatus = ?, department = ?, date = ?, hardwareStatus = ?, customFields = ? WHERE id = ?', 
-        [pcName, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFieldsJson, req.params.id], 
+    db.run('UPDATE laptops SET pcName = ?, username = ?, brand = ?, model = ?, cpu = ?, serialNumber = ?, ram = ?, storage = ?, userStatus = ?, department = ?, date = ?, hardwareStatus = ?, customFields = ? WHERE id = ?', 
+        [pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFieldsJson, req.params.id], 
         function(err) {
             if (err) {
                 res.status(500).json({ error: err.message });
