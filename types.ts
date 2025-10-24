@@ -1,4 +1,4 @@
-export type Page = 'Dashboard' | 'PC Info' | 'Laptop Info' | 'Server Info' | 'Mouse Log' | 'Keyboard Log' | 'SSD Log' | 'Department Summary' | 'Product Inventory' | 'Settings';
+export type Page = 'Dashboard' | 'PC Info' | 'Laptop Info' | 'Server Info' | 'Mouse Log' | 'Keyboard Log' | 'SSD Log' | 'Department Summary' | 'Product Inventory' | 'Settings' | 'User Management';
 
 export interface PeripheralLogEntry {
   id: string;

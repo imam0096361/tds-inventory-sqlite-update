@@ -1,7 +1,8 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { DashboardIcon, DesktopIcon, LaptopIcon, ServerIcon, MouseIcon, KeyboardIcon, SSDIcon, ChartPieIcon, SettingsIcon, BoxIcon } from './Icons';
 import { Page } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface NavItemProps {
   to: string;
@@ -29,6 +30,14 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label }) => {
 };
 
 export const Sidebar: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   const navSections = [
     {
       title: 'Main',
@@ -57,6 +66,15 @@ export const Sidebar: React.FC = () => {
   ];
 
   const settingsItem = { to: '/settings', icon: <SettingsIcon />, label: 'Settings' as Page };
+  const userManagementItem = { 
+    to: '/user-management', 
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ), 
+    label: 'User Management' as Page 
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -80,8 +98,17 @@ export const Sidebar: React.FC = () => {
               </div>
             ))}
         </nav>
+        
+        {/* Settings and Admin Section */}
         <div className="p-4 border-t border-gray-700">
              <ul>
+                 {user?.role === 'admin' && (
+                   <NavItem
+                      to={userManagementItem.to}
+                      icon={userManagementItem.icon}
+                      label={userManagementItem.label}
+                  />
+                 )}
                  <NavItem
                     to={settingsItem.to}
                     icon={settingsItem.icon}
@@ -89,6 +116,31 @@ export const Sidebar: React.FC = () => {
                 />
             </ul>
         </div>
+
+        {/* User Profile Section */}
+        {user && (
+          <div className="p-4 border-t border-gray-700">
+            <div className="flex items-center mb-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {user.fullName?.charAt(0).toUpperCase() || user.username?.charAt(0).toUpperCase()}
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-white">{user.fullName}</p>
+                <p className="text-xs text-gray-400">{user.role}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Logout
+            </button>
+          </div>
+        )}
+
         <div className="pb-4 px-4 text-center text-xs text-gray-500">
           <p>Developed by</p>
           <p className="font-semibold text-gray-400">Imam Chowdhury</p>
