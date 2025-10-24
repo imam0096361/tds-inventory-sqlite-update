@@ -707,7 +707,7 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
         // Create a detailed prompt for Gemini
         const prompt = `You are an IT inventory database assistant. Convert the following natural language query into a structured JSON response that can be used to query a PostgreSQL database.
