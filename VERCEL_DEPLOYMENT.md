@@ -68,11 +68,18 @@ Last Updated: October 24, 2025
 
 ## 🔄 Latest Update
 
-**Environment Variables Verified**: All database credentials have been updated and verified. Redeployment triggered to ensure all environments are using the correct PostgreSQL connection string.
+**🎉 CRITICAL FIX DEPLOYED** - October 24, 2025
+
+**Issue Identified**: All frontend pages were hardcoded to use `http://localhost:3001` for API calls, causing database connection failures on other PCs.
+
+**Solution**: Replaced all absolute localhost URLs with relative paths (`/api/...`), allowing Vercel to handle API requests properly.
+
+**Changes Made**:
+- ✅ Fixed API URLs in all 7 frontend pages (PCInfo, LaptopInfo, ServerInfo, Dashboard, PeripheralLog, KeyboardLog, SSDLog)
+- ✅ Added health check endpoint at `/api/health` for real-time database connectivity verification
+- ✅ Verified database connection with correct PostgreSQL credentials
 
 **Connection String**: `postgresql://neondb_owner:npg_VWYJCfilwL47@ep-lively-cloud-a1lfo3j0-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require`
 
-**Health Check Added**: A new health check endpoint has been added at `/api/health` to verify database connectivity in real-time.
-
-This deployment ensures the database works consistently across all devices and platforms.
+This deployment ensures the application works consistently across **all devices and platforms** with a fully functional cloud database.
 
