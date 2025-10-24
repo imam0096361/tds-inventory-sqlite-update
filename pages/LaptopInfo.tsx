@@ -356,6 +356,7 @@ export const LaptopInfo: React.FC = () => {
                                     />
                                 </th>
                                 <SortableHeader<LaptopInfoEntry> label="PC Name" sortKey="pcName" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
+                                <SortableHeader<LaptopInfoEntry> label="User Name" sortKey="username" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<LaptopInfoEntry> label="Brand" sortKey="brand" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<LaptopInfoEntry> label="Department" sortKey="department" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<LaptopInfoEntry> label="Hardware Status" sortKey="hardwareStatus" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
@@ -375,6 +376,7 @@ export const LaptopInfo: React.FC = () => {
                                         />
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{laptop.pcName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{laptop.username || '-'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{laptop.brand}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{laptop.department}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

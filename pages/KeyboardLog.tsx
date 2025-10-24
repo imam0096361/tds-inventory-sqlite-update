@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PeripheralLogEntry } from '../types';
 import { Modal } from '../components/Modal';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import { DownloadIcon } from '../components/Icons';
+import { DownloadIcon, ImportIcon } from '../components/Icons';
 import { exportToCSV } from '../utils/export';
 import { DetailModal } from '../components/DetailModal';
 import { useDebounce } from '../hooks/useDebounce';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { ImportModal } from '../components/ImportModal';
 
 const emptyFormState: Omit<PeripheralLogEntry, 'id'> = {
     productName: '',
@@ -32,6 +33,7 @@ export const KeyboardLog: React.FC = () => {
     const [endDate, setEndDate] = useState('');
     const [logToDelete, setLogToDelete] = useState<PeripheralLogEntry | null>(null);
     const [viewingLog, setViewingLog] = useState<PeripheralLogEntry | null>(null);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     useEffect(() => {
         fetch('/api/keyboardlogs')
@@ -166,6 +168,22 @@ export const KeyboardLog: React.FC = () => {
         exportToCSV(sortedLogs, 'keyboard-service-logs');
     };
 
+    const handleImportLogs = async (newLogs: Partial<PeripheralLogEntry>[]) => {
+        const logsToAdd = newLogs.map(log => ({
+            ...log,
+            id: crypto.randomUUID()
+        }));
+
+        const addPromises = logsToAdd.map(log => fetch('/api/keyboardlogs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(log),
+        }));
+        
+        await Promise.all(addPromises);
+        setLogs([...logs, ...logsToAdd] as PeripheralLogEntry[]);
+    };
+
     return (
         <>
             <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -173,11 +191,18 @@ export const KeyboardLog: React.FC = () => {
                     <h1 className="text-2xl font-bold text-gray-800">Keyboard Service Log</h1>
                     <div className="flex flex-col sm:flex-row gap-2 self-start md:self-auto">
                          <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <ImportIcon />
+                            <span>Import</span>
+                        </button>
+                        <button
                             onClick={handleExport}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                         >
                             <DownloadIcon />
-                            <span>Export Data</span>
+                            <span>Export</span>
                         </button>
                         <button
                             onClick={handleAddNew}
@@ -285,6 +310,15 @@ export const KeyboardLog: React.FC = () => {
                 onClose={() => setViewingLog(null)} 
                 title={`${viewingLog?.productName || 'Log'} Details`}
                 data={viewingLog} 
+            />
+
+            <ImportModal<Partial<PeripheralLogEntry>>
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={handleImportLogs}
+                assetName="Keyboard Logs"
+                templateHeaders={['productName', 'serialNumber', 'pcName', 'pcUsername', 'department', 'date', 'time', 'servicedBy', 'comment']}
+                exampleRow={['Microsoft Ergonomic', 'SN654321', 'IT-PC-02', 'jane.smith', 'IT', '2024-10-24', '15:00', 'Tech Support', 'Keyboard replacement']}
             />
         </>
     );

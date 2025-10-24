@@ -407,10 +407,10 @@ export const PCInfo: React.FC = () => {
                                         aria-label="Select all PCs on this page"
                                     />
                                 </th>
-                                <SortableHeader<PCInfoEntry> label="PC Name" sortKey="pcName" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
-                                <SortableHeader<PCInfoEntry> label="Department" sortKey="department" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<PCInfoEntry> label="IP Address" sortKey="ip" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
-                                <SortableHeader<PCInfoEntry> label="CPU" sortKey="cpu" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
+                                <SortableHeader<PCInfoEntry> label="PC Name" sortKey="pcName" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
+                                <SortableHeader<PCInfoEntry> label="User Name" sortKey="username" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
+                                <SortableHeader<PCInfoEntry> label="Department" sortKey="department" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<PCInfoEntry> label="Status" sortKey="status" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -427,10 +427,10 @@ export const PCInfo: React.FC = () => {
                                             aria-label={`Select PC ${pc.pcName}`}
                                         />
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pc.pcName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pc.department}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pc.ip}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{pc.cpu}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pc.pcName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pc.username || '-'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pc.department}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(pc.status)}`}>
                                             {pc.status}
