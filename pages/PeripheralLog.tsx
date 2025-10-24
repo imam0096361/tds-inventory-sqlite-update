@@ -34,7 +34,7 @@ export const PeripheralLog: React.FC = () => {
     const [viewingLog, setViewingLog] = useState<PeripheralLogEntry | null>(null);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/mouselogs')
+        fetch('/api/mouselogs')
             .then(res => res.json())
             .then(data => setLogs(data));
     }, []);
@@ -69,7 +69,7 @@ export const PeripheralLog: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!logToDelete) return;
-        await fetch(`http://localhost:3001/api/mouselogs/${logToDelete.id}`, { method: 'DELETE' });
+        await fetch(`/api/mouselogs/${logToDelete.id}`, { method: 'DELETE' });
         setLogs(logs.filter(log => log.id !== logToDelete.id));
         setLogToDelete(null);
     };
@@ -80,7 +80,7 @@ export const PeripheralLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(`http://localhost:3001/api/mouselogs/${editingLog.id}`, {
+            await fetch(`/api/mouselogs/${editingLog.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -88,7 +88,7 @@ export const PeripheralLog: React.FC = () => {
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
             const newLog = { ...formData, id: crypto.randomUUID() };
-            await fetch('http://localhost:3001/api/mouselogs', {
+            await fetch('/api/mouselogs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLog),

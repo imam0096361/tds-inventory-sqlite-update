@@ -48,7 +48,7 @@ export const LaptopInfo: React.FC = () => {
     const [viewingLaptop, setViewingLaptop] = useState<LaptopInfoEntry | null>(null);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/laptops')
+        fetch('/api/laptops')
             .then(res => res.json())
             .then(data => setLaptops(data));
     }, []);
@@ -91,7 +91,7 @@ export const LaptopInfo: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!laptopToDelete) return;
-        await fetch(`http://localhost:3001/api/laptops/${laptopToDelete.id}`, { method: 'DELETE' });
+        await fetch(`/api/laptops/${laptopToDelete.id}`, { method: 'DELETE' });
         setLaptops(laptops.filter(laptop => laptop.id !== laptopToDelete.id));
         setLaptopToDelete(null);
     };
@@ -102,7 +102,7 @@ export const LaptopInfo: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLaptop) {
-            await fetch(`http://localhost:3001/api/laptops/${editingLaptop.id}`, {
+            await fetch(`/api/laptops/${editingLaptop.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -110,7 +110,7 @@ export const LaptopInfo: React.FC = () => {
             setLaptops(laptops.map(laptop => (laptop.id === editingLaptop.id ? { ...formData, id: editingLaptop.id } : laptop)));
         } else {
             const newLaptop = { ...formData, id: crypto.randomUUID() };
-            await fetch('http://localhost:3001/api/laptops', {
+            await fetch('/api/laptops', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLaptop),
@@ -187,7 +187,7 @@ export const LaptopInfo: React.FC = () => {
                 };
             });
             
-            const addPromises = newLaptops.map(laptop => fetch('http://localhost:3001/api/laptops', {
+            const addPromises = newLaptops.map(laptop => fetch('/api/laptops', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(laptop),
@@ -220,7 +220,7 @@ export const LaptopInfo: React.FC = () => {
     };
 
     const handleConfirmBulkDelete = async () => {
-        const deletePromises = selectedLaptopIds.map(id => fetch(`http://localhost:3001/api/laptops/${id}`, { method: 'DELETE' }));
+        const deletePromises = selectedLaptopIds.map(id => fetch(`/api/laptops/${id}`, { method: 'DELETE' }));
         await Promise.all(deletePromises);
         setLaptops(laptops.filter(laptop => !selectedLaptopIds.includes(laptop.id)));
         setSelectedLaptopIds([]);
@@ -228,7 +228,7 @@ export const LaptopInfo: React.FC = () => {
     };
 
     const handleConfirmStatusUpdate = async () => {
-        const updatePromises = selectedLaptopIds.map(id => fetch(`http://localhost:3001/api/laptops/${id}`, {
+        const updatePromises = selectedLaptopIds.map(id => fetch(`/api/laptops/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ [statusTypeToUpdate]: newStatusValue }),

@@ -40,7 +40,7 @@ export const ServerInfo: React.FC = () => {
     const [viewingServer, setViewingServer] = useState<ServerInfoEntry | null>(null);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/servers')
+        fetch('/api/servers')
             .then(res => res.json())
             .then(data => setServers(data));
     }, []);
@@ -75,7 +75,7 @@ export const ServerInfo: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!serverToDelete) return;
-        await fetch(`http://localhost:3001/api/servers/${serverToDelete.id}`, { method: 'DELETE' });
+        await fetch(`/api/servers/${serverToDelete.id}`, { method: 'DELETE' });
         setServers(servers.filter(server => server.id !== serverToDelete.id));
         setServerToDelete(null);
     };
@@ -86,7 +86,7 @@ export const ServerInfo: React.FC = () => {
 
     const handleSave = async () => {
         if (editingServer) {
-            await fetch(`http://localhost:3001/api/servers/${editingServer.id}`, {
+            await fetch(`/api/servers/${editingServer.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -94,7 +94,7 @@ export const ServerInfo: React.FC = () => {
             setServers(servers.map(server => (server.id === editingServer.id ? { ...formData, id: editingServer.id } : server)));
         } else {
             const newServer = { ...formData, id: crypto.randomUUID() };
-            await fetch('http://localhost:3001/api/servers', {
+            await fetch('/api/servers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newServer),
@@ -177,7 +177,7 @@ export const ServerInfo: React.FC = () => {
                 };
             });
 
-            const addPromises = newServers.map(server => fetch('http://localhost:3001/api/servers', {
+            const addPromises = newServers.map(server => fetch('/api/servers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(server),

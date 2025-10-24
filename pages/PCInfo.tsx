@@ -49,7 +49,7 @@ export const PCInfo: React.FC = () => {
     const [viewingPC, setViewingPC] = useState<PCInfoEntry | null>(null);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/pcs')
+        fetch('/api/pcs')
             .then(res => res.json())
             .then(data => setPcs(data));
     }, []);
@@ -88,7 +88,7 @@ export const PCInfo: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!pcToDelete) return;
-        await fetch(`http://localhost:3001/api/pcs/${pcToDelete.id}`, { method: 'DELETE' });
+        await fetch(`/api/pcs/${pcToDelete.id}`, { method: 'DELETE' });
         setPcs(pcs.filter(pc => pc.id !== pcToDelete.id));
         setPcToDelete(null);
     };
@@ -118,7 +118,7 @@ export const PCInfo: React.FC = () => {
             return;
         }
         if (editingPC) {
-            await fetch(`http://localhost:3001/api/pcs/${editingPC.id}`, {
+            await fetch(`/api/pcs/${editingPC.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -126,7 +126,7 @@ export const PCInfo: React.FC = () => {
             setPcs(pcs.map(pc => (pc.id === editingPC.id ? { ...formData, id: editingPC.id } : pc)));
         } else {
             const newPC = { ...formData, id: crypto.randomUUID() };
-            await fetch('http://localhost:3001/api/pcs', {
+            await fetch('/api/pcs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newPC),
@@ -221,7 +221,7 @@ export const PCInfo: React.FC = () => {
     };
 
     const handleConfirmBulkDelete = async () => {
-        const deletePromises = selectedPcIds.map(id => fetch(`http://localhost:3001/api/pcs/${id}`, { method: 'DELETE' }));
+        const deletePromises = selectedPcIds.map(id => fetch(`/api/pcs/${id}`, { method: 'DELETE' }));
         await Promise.all(deletePromises);
         setPcs(pcs.filter(pc => !selectedPcIds.includes(pc.id)));
         setSelectedPcIds([]);
@@ -229,7 +229,7 @@ export const PCInfo: React.FC = () => {
     };
 
     const handleConfirmStatusUpdate = async () => {
-        const updatePromises = selectedPcIds.map(id => fetch(`http://localhost:3001/api/pcs/${id}`, {
+        const updatePromises = selectedPcIds.map(id => fetch(`/api/pcs/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus }),
@@ -258,7 +258,7 @@ export const PCInfo: React.FC = () => {
                 };
             });
             
-            const addPromises = newPcs.map(pc => fetch('http://localhost:3001/api/pcs', {
+            const addPromises = newPcs.map(pc => fetch('/api/pcs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(pc),

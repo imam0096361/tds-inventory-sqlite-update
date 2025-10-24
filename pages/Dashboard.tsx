@@ -35,12 +35,12 @@ export const Dashboard: React.FC = () => {
     const [ssdLogs, setSsdLogs] = useState<PeripheralLogEntry[]>([]);
 
     useEffect(() => {
-        fetch('http://localhost:3001/api/pcs').then(res => res.json()).then(data => setPcs(data));
-        fetch('http://localhost:3001/api/laptops').then(res => res.json()).then(data => setLaptops(data));
-        fetch('http://localhost:3001/api/servers').then(res => res.json()).then(data => setServers(data));
-        fetch('http://localhost:3001/api/mouselogs').then(res => res.json()).then(data => setMouseLogs(data));
-        fetch('http://localhost:3001/api/keyboardlogs').then(res => res.json()).then(data => setKeyboardLogs(data));
-        fetch('http://localhost:3001/api/ssdlogs').then(res => res.json()).then(data => setSsdLogs(data));
+        fetch('/api/pcs').then(res => res.json()).then(data => setPcs(data));
+        fetch('/api/laptops').then(res => res.json()).then(data => setLaptops(data));
+        fetch('/api/servers').then(res => res.json()).then(data => setServers(data));
+        fetch('/api/mouselogs').then(res => res.json()).then(data => setMouseLogs(data));
+        fetch('/api/keyboardlogs').then(res => res.json()).then(data => setKeyboardLogs(data));
+        fetch('/api/ssdlogs').then(res => res.json()).then(data => setSsdLogs(data));
     }, []);
 
     const inventoryItems = [
