@@ -33,6 +33,8 @@ export const Dashboard: React.FC = () => {
     const [mouseLogs, setMouseLogs] = useState<PeripheralLogEntry[]>([]);
     const [keyboardLogs, setKeyboardLogs] = useState<PeripheralLogEntry[]>([]);
     const [ssdLogs, setSsdLogs] = useState<PeripheralLogEntry[]>([]);
+    const [headphoneLogs, setHeadphoneLogs] = useState<PeripheralLogEntry[]>([]);
+    const [hddLogs, setHddLogs] = useState<PeripheralLogEntry[]>([]);
 
     useEffect(() => {
         fetch('/api/pcs').then(res => res.json()).then(data => setPcs(data));
@@ -41,6 +43,8 @@ export const Dashboard: React.FC = () => {
         fetch('/api/mouselogs').then(res => res.json()).then(data => setMouseLogs(data));
         fetch('/api/keyboardlogs').then(res => res.json()).then(data => setKeyboardLogs(data));
         fetch('/api/ssdlogs').then(res => res.json()).then(data => setSsdLogs(data));
+        fetch('/api/headphonelogs').then(res => res.json()).then(data => setHeadphoneLogs(data));
+        fetch('/api/portablehddlogs').then(res => res.json()).then(data => setHddLogs(data));
     }, []);
 
     const inventoryItems = [
@@ -50,6 +54,24 @@ export const Dashboard: React.FC = () => {
         { to: '/mouse-log', icon: <MouseIcon />, title: 'Mouse Service Log' },
         { to: '/keyboard-log', icon: <KeyboardIcon />, title: 'Keyboard Log' },
         { to: '/ssd-log', icon: <SSDIcon />, title: 'SSD Log' },
+        { 
+            to: '/headphone-log', 
+            icon: (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+            ), 
+            title: 'Headphone Log' 
+        },
+        { 
+            to: '/portable-hdd-log', 
+            icon: (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                </svg>
+            ), 
+            title: 'Portable HDD Log' 
+        },
         { to: '/department-summary', icon: <ChartPieIcon />, title: 'Department Summary' },
     ];
 
@@ -63,7 +85,12 @@ export const Dashboard: React.FC = () => {
         if (!logs || logs.length === 0) {
             return [{ name: 'Used', value: 0 }, { name: 'In Stock', value: 0 }];
         }
-        const used = logs.filter(log => log.pcName || log.pcUsername).length;
+        // IMPROVED: Check for non-empty pcName OR pcUsername (trim to handle spaces)
+        const used = logs.filter(log => {
+            const hasPcName = log.pcName && log.pcName.trim() !== '';
+            const hasUsername = log.pcUsername && log.pcUsername.trim() !== '';
+            return hasPcName || hasUsername;
+        }).length;
         const inStock = logs.length - used;
         return [{ name: 'Used', value: used }, { name: 'In Stock', value: inStock }];
     };
@@ -72,9 +99,11 @@ export const Dashboard: React.FC = () => {
         mouse: calculateUsage(mouseLogs),
         keyboard: calculateUsage(keyboardLogs),
         ssd: calculateUsage(ssdLogs),
+        headphone: calculateUsage(headphoneLogs),
+        hdd: calculateUsage(hddLogs),
     };
 
-    const allLogs = [...mouseLogs, ...keyboardLogs, ...ssdLogs];
+    const allLogs = [...mouseLogs, ...keyboardLogs, ...ssdLogs, ...headphoneLogs, ...hddLogs];
     const recentLogs = allLogs
         .sort((a, b) => a.id.localeCompare(b.id))
         .slice(0, 5);

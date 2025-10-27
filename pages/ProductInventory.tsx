@@ -1,6 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import useLocalStorage from '../hooks/useLocalStorage';
-import { mouseDistributionLog, keyboardDistributionLog, ssdDistributionLog } from '../data/dummyData';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PeripheralLogEntry } from '../types';
 import { Modal } from '../components/Modal';
 import { BoxIcon, ImportIcon } from '../components/Icons';
@@ -8,7 +6,7 @@ import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 
-type Category = 'Mouse' | 'Keyboard' | 'SSD';
+type Category = 'Mouse' | 'Keyboard' | 'SSD' | 'Headphone' | 'Portable HDD';
 
 interface ProductSummary {
     name: string;
@@ -33,19 +31,59 @@ const emptyStockForm: AddStockFormData = {
 };
 
 export const ProductInventory: React.FC = () => {
-    const [mouseLogs, setMouseLogs] = useLocalStorage<PeripheralLogEntry[]>('mouseLogs', mouseDistributionLog);
-    const [keyboardLogs, setKeyboardLogs] = useLocalStorage<PeripheralLogEntry[]>('keyboardLogs', keyboardDistributionLog);
-    const [ssdLogs, setSsdLogs] = useLocalStorage<PeripheralLogEntry[]>('ssdLogs', ssdDistributionLog);
+    const [mouseLogs, setMouseLogs] = useState<PeripheralLogEntry[]>([]);
+    const [keyboardLogs, setKeyboardLogs] = useState<PeripheralLogEntry[]>([]);
+    const [ssdLogs, setSsdLogs] = useState<PeripheralLogEntry[]>([]);
+    const [headphoneLogs, setHeadphoneLogs] = useState<PeripheralLogEntry[]>([]);
+    const [hddLogs, setHddLogs] = useState<PeripheralLogEntry[]>([]);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [stockFormData, setStockFormData] = useState<AddStockFormData>(emptyStockForm);
     const [formErrors, setFormErrors] = useState<{productName?: string, serialNumbers?: string}>({});
+    const [loading, setLoading] = useState(true);
+
+    // Fetch all peripheral logs from API
+    useEffect(() => {
+        const fetchAllLogs = async () => {
+            try {
+                const [mouseRes, keyboardRes, ssdRes, headphoneRes, hddRes] = await Promise.all([
+                    fetch('/api/mouselogs'),
+                    fetch('/api/keyboardlogs'),
+                    fetch('/api/ssdlogs'),
+                    fetch('/api/headphonelogs'),
+                    fetch('/api/portablehddlogs')
+                ]);
+
+                const [mouseData, keyboardData, ssdData, headphoneData, hddData] = await Promise.all([
+                    mouseRes.json(),
+                    keyboardRes.json(),
+                    ssdRes.json(),
+                    headphoneRes.json(),
+                    hddRes.json()
+                ]);
+
+                setMouseLogs(mouseData);
+                setKeyboardLogs(keyboardData);
+                setSsdLogs(ssdData);
+                setHeadphoneLogs(headphoneData);
+                setHddLogs(hddData);
+            } catch (error) {
+                console.error('Error fetching peripheral logs:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAllLogs();
+    }, []);
 
     const productSummaries = useMemo<ProductSummary[]>(() => {
         const allLogs = [
             ...mouseLogs.map(log => ({ ...log, category: 'Mouse' as Category })),
             ...keyboardLogs.map(log => ({ ...log, category: 'Keyboard' as Category })),
             ...ssdLogs.map(log => ({ ...log, category: 'SSD' as Category })),
+            ...headphoneLogs.map(log => ({ ...log, category: 'Headphone' as Category })),
+            ...hddLogs.map(log => ({ ...log, category: 'Portable HDD' as Category })),
         ];
 
         const groupedByName = allLogs.reduce((acc, log) => {
@@ -58,7 +96,13 @@ export const ProductInventory: React.FC = () => {
 
         return Object.entries(groupedByName).map(([name, logs]) => {
             const total = logs.length;
-            const used = logs.filter(log => log.pcName || log.pcUsername || log.department).length;
+            // FIXED: An item is "used" only if it's assigned to a PC/User (has pcName OR pcUsername with actual values)
+            // Items with empty pcName AND empty pcUsername are "available" (in stock, not assigned)
+            const used = logs.filter(log => {
+                const hasPcName = log.pcName && log.pcName.trim() !== '';
+                const hasUsername = log.pcUsername && log.pcUsername.trim() !== '';
+                return hasPcName || hasUsername;
+            }).length;
             return {
                 name,
                 category: logs[0].category, // Assume all products with the same name have the same category
@@ -67,7 +111,7 @@ export const ProductInventory: React.FC = () => {
                 available: total - used,
             };
         });
-    }, [mouseLogs, keyboardLogs, ssdLogs]);
+    }, [mouseLogs, keyboardLogs, ssdLogs, headphoneLogs, hddLogs]);
 
     const { sortedItems: sortedSummaries, requestSort, sortConfig } = useSort<ProductSummary>(productSummaries, { key: 'name', direction: 'ascending' });
     
@@ -101,13 +145,13 @@ export const ProductInventory: React.FC = () => {
         return Object.keys(errors).length === 0;
     }
 
-    const handleSaveStock = () => {
+    const handleSaveStock = async () => {
         if(!validateStockForm()) return;
 
         const serials = stockFormData.serialNumbers.split('\n').map(s => s.trim()).filter(Boolean);
 
         const newEntries: PeripheralLogEntry[] = serials.map((serial, index) => ({
-            id: Date.now() + index,
+            id: crypto.randomUUID(),
             productName: stockFormData.productName,
             serialNumber: serial,
             pcName: '',
@@ -119,26 +163,68 @@ export const ProductInventory: React.FC = () => {
             comment: stockFormData.comment,
         }));
 
-        switch (stockFormData.category) {
-            case 'Mouse':
-                setMouseLogs(prev => [...prev, ...newEntries]);
-                break;
-            case 'Keyboard':
-                setKeyboardLogs(prev => [...prev, ...newEntries]);
-                break;
-            case 'SSD':
-                setSsdLogs(prev => [...prev, ...newEntries]);
-                break;
-        }
+        try {
+            let apiEndpoint = '';
+            switch (stockFormData.category) {
+                case 'Mouse':
+                    apiEndpoint = '/api/mouselogs';
+                    break;
+                case 'Keyboard':
+                    apiEndpoint = '/api/keyboardlogs';
+                    break;
+                case 'SSD':
+                    apiEndpoint = '/api/ssdlogs';
+                    break;
+                case 'Headphone':
+                    apiEndpoint = '/api/headphonelogs';
+                    break;
+                case 'Portable HDD':
+                    apiEndpoint = '/api/portablehddlogs';
+                    break;
+            }
 
-        setIsStockModalOpen(false);
+            // Add each entry via API
+            for (const entry of newEntries) {
+                await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry),
+                });
+            }
+
+            // Update local state
+            switch (stockFormData.category) {
+                case 'Mouse':
+                    setMouseLogs(prev => [...prev, ...newEntries]);
+                    break;
+                case 'Keyboard':
+                    setKeyboardLogs(prev => [...prev, ...newEntries]);
+                    break;
+                case 'SSD':
+                    setSsdLogs(prev => [...prev, ...newEntries]);
+                    break;
+                case 'Headphone':
+                    setHeadphoneLogs(prev => [...prev, ...newEntries]);
+                    break;
+                case 'Portable HDD':
+                    setHddLogs(prev => [...prev, ...newEntries]);
+                    break;
+            }
+
+            setIsStockModalOpen(false);
+        } catch (error) {
+            console.error('Error adding stock:', error);
+            alert('Failed to add stock. Please try again.');
+        }
     };
     
-    const handleImportStock = (data: { productName: string; serialNumber: string; category: string; comment: string }[]): { success: boolean, message: string } => {
+    const handleImportStock = async (data: { productName: string; serialNumber: string; category: string; comment: string }[]): Promise<{ success: boolean, message: string }> => {
         try {
             const newMouseEntries: PeripheralLogEntry[] = [];
             const newKeyboardEntries: PeripheralLogEntry[] = [];
             const newSsdEntries: PeripheralLogEntry[] = [];
+            const newHeadphoneEntries: PeripheralLogEntry[] = [];
+            const newHddEntries: PeripheralLogEntry[] = [];
 
             data.forEach((item, index) => {
                 if (!item.productName || !item.serialNumber || !item.category) {
@@ -146,12 +232,12 @@ export const ProductInventory: React.FC = () => {
                 }
 
                 const category = item.category.trim();
-                if (!['Mouse', 'Keyboard', 'SSD'].includes(category)) {
-                    throw new Error(`Row ${index + 1}: Invalid category "${category}". Must be one of 'Mouse', 'Keyboard', 'SSD'.`);
+                if (!['Mouse', 'Keyboard', 'SSD', 'Headphone', 'Portable HDD'].includes(category)) {
+                    throw new Error(`Row ${index + 1}: Invalid category "${category}". Must be one of 'Mouse', 'Keyboard', 'SSD', 'Headphone', 'Portable HDD'.`);
                 }
 
                 const newEntry: PeripheralLogEntry = {
-                    id: Date.now() + index,
+                    id: crypto.randomUUID(),
                     productName: item.productName.trim(),
                     serialNumber: item.serialNumber.trim(),
                     pcName: '',
@@ -166,11 +252,61 @@ export const ProductInventory: React.FC = () => {
                 if (category === 'Mouse') newMouseEntries.push(newEntry);
                 if (category === 'Keyboard') newKeyboardEntries.push(newEntry);
                 if (category === 'SSD') newSsdEntries.push(newEntry);
+                if (category === 'Headphone') newHeadphoneEntries.push(newEntry);
+                if (category === 'Portable HDD') newHddEntries.push(newEntry);
             });
 
+            // Add all entries via API
+            const addPromises: Promise<any>[] = [];
+            
+            newMouseEntries.forEach(entry => {
+                addPromises.push(fetch('/api/mouselogs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry),
+                }));
+            });
+
+            newKeyboardEntries.forEach(entry => {
+                addPromises.push(fetch('/api/keyboardlogs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry),
+                }));
+            });
+
+            newSsdEntries.forEach(entry => {
+                addPromises.push(fetch('/api/ssdlogs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry),
+                }));
+            });
+
+            newHeadphoneEntries.forEach(entry => {
+                addPromises.push(fetch('/api/headphonelogs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry),
+                }));
+            });
+
+            newHddEntries.forEach(entry => {
+                addPromises.push(fetch('/api/portablehddlogs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry),
+                }));
+            });
+
+            await Promise.all(addPromises);
+
+            // Update local state
             if (newMouseEntries.length > 0) setMouseLogs(prev => [...prev, ...newMouseEntries]);
             if (newKeyboardEntries.length > 0) setKeyboardLogs(prev => [...prev, ...newKeyboardEntries]);
             if (newSsdEntries.length > 0) setSsdLogs(prev => [...prev, ...newSsdEntries]);
+            if (newHeadphoneEntries.length > 0) setHeadphoneLogs(prev => [...prev, ...newHeadphoneEntries]);
+            if (newHddEntries.length > 0) setHddLogs(prev => [...prev, ...newHddEntries]);
 
             return { success: true, message: `Successfully imported ${data.length} items.` };
         } catch (error: any) {
@@ -183,8 +319,21 @@ export const ProductInventory: React.FC = () => {
             case 'Mouse': return 'bg-blue-100 text-blue-800';
             case 'Keyboard': return 'bg-purple-100 text-purple-800';
             case 'SSD': return 'bg-green-100 text-green-800';
+            case 'Headphone': return 'bg-yellow-100 text-yellow-800';
+            case 'Portable HDD': return 'bg-indigo-100 text-indigo-800';
             default: return 'bg-gray-100 text-gray-800';
         }
+    }
+
+    if (loading) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-lg flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading product inventory...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -258,6 +407,8 @@ export const ProductInventory: React.FC = () => {
                             <option value="Mouse">Mouse</option>
                             <option value="Keyboard">Keyboard</option>
                             <option value="SSD">SSD</option>
+                            <option value="Headphone">Headphone</option>
+                            <option value="Portable HDD">Portable HDD</option>
                         </select>
                     </div>
                     <div>
