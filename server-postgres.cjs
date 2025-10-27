@@ -707,16 +707,40 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
     }
 
     try {
-        // Use the stable production model
-        const model = genAI.getGenerativeModel({ 
-            model: 'gemini-pro',
-            generationConfig: {
-                temperature: 0.1,
-                topK: 1,
-                topP: 1,
-                maxOutputTokens: 2048,
+        // Try multiple model names as fallback
+        let model;
+        const modelNames = [
+            'gemini-2.0-flash-exp',
+            'gemini-1.5-pro',
+            'gemini-1.5-flash-002',
+            'gemini-1.5-flash',
+            'models/gemini-pro'
+        ];
+
+        let lastError = null;
+        for (const modelName of modelNames) {
+            try {
+                model = genAI.getGenerativeModel({ 
+                    model: modelName,
+                    generationConfig: {
+                        temperature: 0.1,
+                        topK: 1,
+                        topP: 1,
+                        maxOutputTokens: 2048,
+                    }
+                });
+                console.log(`✅ Successfully initialized model: ${modelName}`);
+                break;
+            } catch (err) {
+                lastError = err;
+                console.log(`⚠️ Model ${modelName} failed, trying next...`);
+                continue;
             }
-        });
+        }
+
+        if (!model) {
+            throw new Error(`Failed to initialize any Gemini model. Last error: ${lastError?.message}`);
+        }
 
         // Create a detailed prompt for Gemini
         const prompt = `You are an IT inventory database assistant. Convert the following natural language query into a structured JSON response that can be used to query a PostgreSQL database.
