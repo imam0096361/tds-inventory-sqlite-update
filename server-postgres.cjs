@@ -862,39 +862,151 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
             throw new Error(`Failed to initialize any Gemini model. Last error: ${lastError?.message}`);
         }
 
-        // Create a detailed prompt for Gemini
-        const prompt = `You are an IT inventory database assistant. Convert the following natural language query into a structured JSON response that can be used to query a PostgreSQL database.
+        // Create an enhanced, detailed prompt for Gemini
+        const prompt = `You are an expert IT inventory database assistant. Your task is to convert natural language queries into precise, structured JSON for querying a PostgreSQL database.
 
-Available tables and their columns:
-1. pcs: department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status (OK/NO/Repair), floor (5/6/7)
-2. laptops: pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus (Good/Battery Problem/Platform Problem)
-3. servers: serverID, brand, model, cpu, totalCores, ram, storage, raid, status (Online/Offline/Maintenance), department
-4. mouselogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
-5. keyboardlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
-6. ssdlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
-7. headphonelogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
-8. portablehddlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
+=== DATABASE SCHEMA ===
 
-User Query: "${query}"
+1. **PCs Table** (pcs):
+   - department (TEXT): HR, IT, Finance, Sales, Marketing, Operations, etc.
+   - ip (TEXT): IP address like "192.168.1.100"
+   - pcName (TEXT): PC identifier like "IT-PC-01", "HR-DESK-05"
+   - username (TEXT): User name like "john.doe", "Sarah Wilson"
+   - motherboard (TEXT): "ASUS Prime", "MSI B450", "Gigabyte"
+   - cpu (TEXT): "Intel Core i5", "Core i7", "AMD Ryzen 5", "i3", "i7-9700K"
+   - ram (TEXT): "8 GB", "16 GB", "32 GB", "4GB"
+   - storage (TEXT): "500 GB HDD", "1 TB SSD", "256GB SSD"
+   - monitor (TEXT): "Dell 24 inch", "Samsung 27", "LG UltraWide"
+   - os (TEXT): "Windows 10", "Windows 11", "Ubuntu", "Linux"
+   - status (TEXT): "OK", "NO", "Repair" (EXACT match required)
+   - floor (NUMBER): 5, 6, or 7
 
-Respond ONLY with a valid JSON object (no markdown, no explanation) in this exact format:
+2. **Laptops Table** (laptops):
+   - pcName (TEXT): "LAP-001", "HR-LAPTOP-05"
+   - username (TEXT): User name
+   - brand (TEXT): "Dell", "HP", "Lenovo", "Apple", "ASUS"
+   - model (TEXT): "Latitude 5420", "ThinkPad X1", "MacBook Pro"
+   - cpu (TEXT): Processor like "Core i5", "i7", "Ryzen 7"
+   - serialNumber (TEXT): Serial number
+   - ram (TEXT): "8 GB", "16 GB", "32 GB"
+   - storage (TEXT): "512 GB SSD", "1 TB HDD"
+   - userStatus (TEXT): Current usage status
+   - department (TEXT): Department name
+   - date (TEXT): Date in YYYY-MM-DD format
+   - hardwareStatus (TEXT): "Good", "Battery Problem", "Platform Problem" (EXACT match)
+
+3. **Servers Table** (servers):
+   - serverID (TEXT): "SRV-001", "WEB-SERVER-01"
+   - brand (TEXT): "Dell", "HP", "IBM", "Cisco"
+   - model (TEXT): "PowerEdge R740", "ProLiant DL380"
+   - cpu (TEXT): Server processor
+   - totalCores (NUMBER): Number of CPU cores
+   - ram (TEXT): "64 GB", "128 GB", "256 GB"
+   - storage (TEXT): "2 TB RAID", "4 TB SSD"
+   - raid (TEXT): "RAID 1", "RAID 5", "RAID 10"
+   - status (TEXT): "Online", "Offline", "Maintenance" (EXACT match)
+   - department (TEXT): Department owning the server
+
+4. **Peripheral Logs** (mouselogs, keyboardlogs, ssdlogs, headphonelogs, portablehddlogs):
+   ALL have the same structure:
+   - productName (TEXT): "Logitech MX Master", "Microsoft Ergonomic Keyboard"
+   - serialNumber (TEXT): Serial number like "SN123456"
+   - pcName (TEXT): Associated PC
+   - pcUsername (TEXT): User who received it
+   - department (TEXT): Department
+   - date (TEXT): Service date in YYYY-MM-DD
+   - time (TEXT): Service time like "14:30", "09:00"
+   - servicedBy (TEXT): Technician name
+   - comment (TEXT): Service notes
+
+=== IMPORTANT INSTRUCTIONS ===
+
+1. **CPU Matching**: 
+   - "i7" or "Core i7" → use "contains" with "i7"
+   - "i5" or "Core i5" → use "contains" with "i5"
+   - "i3" or "Core i3" → use "contains" with "i3"
+   - "Ryzen" → use "contains" with "Ryzen"
+
+2. **RAM Matching**:
+   - "8GB" or "8 GB" → use "contains" with "8"
+   - "16GB" or "16 GB" → use "contains" with "16"
+   - Always use "contains" operator for RAM
+
+3. **Status Fields**:
+   - For PCs: use EXACT values "OK", "NO", or "Repair"
+   - For Laptops hardwareStatus: use "Good", "Battery Problem", or "Platform Problem"
+   - For Servers: use "Online", "Offline", or "Maintenance"
+
+4. **Department Matching**:
+   - Match common abbreviations: "IT", "HR", "Finance", "Sales"
+   - Use "equals" operator for exact department match
+
+5. **Text Search**:
+   - For brand names, models, product names: use "contains"
+   - For exact IDs, serial numbers: use "equals" if exact, "contains" if partial
+
+6. **Multiple Conditions**:
+   - Combine all relevant filters
+   - Example: "i7 with 16GB" needs BOTH cpu AND ram filters
+
+=== QUERY INTERPRETATION RULES ===
+
+- "all PCs" → module: "pcs", no filters
+- "laptops in IT" → module: "laptops", filter department="IT"
+- "servers offline" → module: "servers", filter status="Offline"
+- "mouse serviced" → module: "mouselogs"
+- "keyboard logs" → module: "keyboardlogs"
+- "SSD replacements" → module: "ssdlogs"
+- "headphones" → module: "headphonelogs"
+- "portable HDD" or "external drives" → module: "portablehddlogs"
+
+=== USER QUERY ===
+"${query}"
+
+=== RESPONSE FORMAT ===
+Respond with ONLY valid JSON (no markdown, no code blocks, no explanation):
+
 {
   "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs" | "headphonelogs" | "portablehddlogs",
   "filters": {
-    "fieldName": { "operator": "equals" | "contains" | "greaterThan" | "lessThan", "value": "..." }
+    "fieldName": {
+      "operator": "equals" | "contains" | "greaterThan" | "lessThan",
+      "value": "string or number"
+    }
   },
-  "interpretation": "A brief explanation of what you understood from the query"
+  "interpretation": "Brief explanation of what you understood"
 }
 
-Examples:
+=== EXAMPLES ===
+
 Query: "Show me all PCs with Core i7 and 8GB RAM"
-Response: {"module":"pcs","filters":{"cpu":{"operator":"contains","value":"Core i7"},"ram":{"operator":"contains","value":"8 GB"}},"interpretation":"Finding all PCs with Core i7 processor and 8GB RAM"}
+{"module":"pcs","filters":{"cpu":{"operator":"contains","value":"i7"},"ram":{"operator":"contains","value":"8"}},"interpretation":"Finding all PCs with i7 processor and 8GB RAM"}
+
+Query: "I need core i7 all pc there 8 gb ram"
+{"module":"pcs","filters":{"cpu":{"operator":"contains","value":"i7"},"ram":{"operator":"contains","value":"8"}},"interpretation":"Searching for PCs with Core i7 CPU and 8GB RAM"}
 
 Query: "Find laptops in HR department with battery problems"
-Response: {"module":"laptops","filters":{"department":{"operator":"equals","value":"HR"},"hardwareStatus":{"operator":"equals","value":"Battery Problem"}},"interpretation":"Finding laptops in HR department that have battery issues"}
+{"module":"laptops","filters":{"department":{"operator":"equals","value":"HR"},"hardwareStatus":{"operator":"equals","value":"Battery Problem"}},"interpretation":"Finding HR department laptops with battery issues"}
 
 Query: "List all servers that are offline"
-Response: {"module":"servers","filters":{"status":{"operator":"equals","value":"Offline"}},"interpretation":"Finding all servers with offline status"}`;
+{"module":"servers","filters":{"status":{"operator":"equals","value":"Offline"}},"interpretation":"Retrieving all offline servers"}
+
+Query: "Show me Dell laptops with i5 processor"
+{"module":"laptops","filters":{"brand":{"operator":"equals","value":"Dell"},"cpu":{"operator":"contains","value":"i5"}},"interpretation":"Finding Dell branded laptops with i5 processors"}
+
+Query: "PCs on floor 5 with 16GB RAM"
+{"module":"pcs","filters":{"floor":{"operator":"equals","value":"5"},"ram":{"operator":"contains","value":"16"}},"interpretation":"Finding PCs located on floor 5 with 16GB RAM"}
+
+Query: "All mouse distributed to IT department"
+{"module":"mouselogs","filters":{"department":{"operator":"equals","value":"IT"}},"interpretation":"Finding all mouse distribution logs for IT department"}
+
+Query: "Headphones serviced this month"
+{"module":"headphonelogs","filters":{},"interpretation":"Retrieving all headphone service logs (apply date filter in UI)"}
+
+Query: "Show all PCs"
+{"module":"pcs","filters":{},"interpretation":"Retrieving all PC records"}
+
+NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;

@@ -90,12 +90,17 @@ export const AIAssistant: React.FC = () => {
 
     const exampleQueries = [
         "Show me all PCs with Core i7 and 8GB RAM",
+        "I need core i7 all pc there 8 gb ram",
         "Find laptops in HR department with battery problems",
         "List all servers that are offline",
         "Show me all PCs that need repair",
         "Find all mice distributed in IT department",
-        "List keyboards serviced this year",
-        "Show all laptops with good hardware status"
+        "Dell laptops with i5 processor",
+        "PCs on floor 5 with 16GB RAM",
+        "Show all headphones serviced",
+        "Portable HDDs in IT department",
+        "All PCs with Windows 11",
+        "Lenovo laptops with good hardware"
     ];
 
     return (
@@ -184,6 +189,29 @@ export const AIAssistant: React.FC = () => {
                                 {example}
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                {/* Helpful Tips */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">✨ Tips for better results:</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
+                        <div className="flex items-start gap-2">
+                            <span className="text-green-600 font-bold">✓</span>
+                            <span><strong>Be specific:</strong> "PCs with i7 and 8GB RAM" instead of just "PCs"</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <span className="text-green-600 font-bold">✓</span>
+                            <span><strong>Use natural language:</strong> "I need all laptops in HR" works great!</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <span className="text-green-600 font-bold">✓</span>
+                            <span><strong>Combine filters:</strong> "Dell laptops with i5 in IT department"</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <span className="text-green-600 font-bold">✓</span>
+                            <span><strong>Check status:</strong> "servers offline", "PCs need repair"</span>
+                        </div>
                     </div>
                 </div>
             </div>
