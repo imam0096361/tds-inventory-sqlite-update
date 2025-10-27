@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { MenuIcon, XIcon } from './components/Icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './components/Toast';
 
 const Dashboard = lazy(() => import('./pages/Dashboard').then(module => ({ default: module.Dashboard })));
 const PCInfo = lazy(() => import('./pages/PCInfo').then(module => ({ default: module.PCInfo })));
@@ -97,9 +98,11 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ToastProvider>
   );
 };
 
