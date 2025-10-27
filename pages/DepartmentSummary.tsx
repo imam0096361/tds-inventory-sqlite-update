@@ -7,6 +7,7 @@ import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { TableSkeleton } from '../components/LoadingSkeleton';
 import { useToast } from '../components/Toast';
+import { cachedFetch, CACHE_CONFIG } from '../utils/cache';
 
 interface DepartmentCounts {
   pcs: number;
@@ -30,25 +31,28 @@ export const DepartmentSummary: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const toast = useToast();
 
-    // Fetch all data from API
+    // Fetch all data from API with smart caching
     useEffect(() => {
         const fetchAllData = async () => {
             try {
                 setLoading(true);
-                const [pcsRes, laptopsRes, serversRes] = await Promise.all([
-                    fetch('/api/pcs'),
-                    fetch('/api/laptops'),
-                    fetch('/api/servers')
-                ]);
-
-                if (!pcsRes.ok || !laptopsRes.ok || !serversRes.ok) {
-                    throw new Error('Failed to fetch data');
-                }
-
+                
+                // Use smart cache with stale-while-revalidate
+                // First load: Fetch from API
+                // Second load: Instant from cache!
                 const [pcsData, laptopsData, serversData] = await Promise.all([
-                    pcsRes.json(),
-                    laptopsRes.json(),
-                    serversRes.json()
+                    cachedFetch<PCInfoEntry[]>('/api/pcs', { 
+                        ttl: CACHE_CONFIG.REPORTS,
+                        staleWhileRevalidate: true 
+                    }),
+                    cachedFetch<LaptopInfoEntry[]>('/api/laptops', { 
+                        ttl: CACHE_CONFIG.REPORTS,
+                        staleWhileRevalidate: true 
+                    }),
+                    cachedFetch<ServerInfoEntry[]>('/api/servers', { 
+                        ttl: CACHE_CONFIG.REPORTS,
+                        staleWhileRevalidate: true 
+                    })
                 ]);
 
                 setPcs(pcsData);

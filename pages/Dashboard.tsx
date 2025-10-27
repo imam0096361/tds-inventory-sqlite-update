@@ -6,6 +6,7 @@ import { RecentActivityCard } from '../components/RecentActivityCard';
 import { StatusSummaryCard } from '../components/StatusSummaryCard';
 import { DesktopIcon, LaptopIcon, ServerIcon, MouseIcon, KeyboardIcon, SSDIcon, ChartPieIcon } from '../components/Icons';
 import { PCInfoEntry, LaptopInfoEntry, ServerInfoEntry, PeripheralLogEntry } from '../types';
+import { cachedFetch, CACHE_CONFIG } from '../utils/cache';
 
 interface DashboardCardProps {
     icon: React.ReactNode;
@@ -36,15 +37,45 @@ export const Dashboard: React.FC = () => {
     const [headphoneLogs, setHeadphoneLogs] = useState<PeripheralLogEntry[]>([]);
     const [hddLogs, setHddLogs] = useState<PeripheralLogEntry[]>([]);
 
+    // Fetch all data with smart caching for SUPER FAST second load!
     useEffect(() => {
-        fetch('/api/pcs').then(res => res.json()).then(data => setPcs(data));
-        fetch('/api/laptops').then(res => res.json()).then(data => setLaptops(data));
-        fetch('/api/servers').then(res => res.json()).then(data => setServers(data));
-        fetch('/api/mouselogs').then(res => res.json()).then(data => setMouseLogs(data));
-        fetch('/api/keyboardlogs').then(res => res.json()).then(data => setKeyboardLogs(data));
-        fetch('/api/ssdlogs').then(res => res.json()).then(data => setSsdLogs(data));
-        fetch('/api/headphonelogs').then(res => res.json()).then(data => setHeadphoneLogs(data));
-        fetch('/api/portablehddlogs').then(res => res.json()).then(data => setHddLogs(data));
+        const loadDashboardData = async () => {
+            try {
+                // Use Promise.all for parallel fetching + caching
+                const [
+                    pcsData,
+                    laptopsData,
+                    serversData,
+                    mouseData,
+                    keyboardData,
+                    ssdData,
+                    headphoneData,
+                    hddData
+                ] = await Promise.all([
+                    cachedFetch<PCInfoEntry[]>('/api/pcs', { ttl: CACHE_CONFIG.DYNAMIC_DATA, staleWhileRevalidate: true }),
+                    cachedFetch<LaptopInfoEntry[]>('/api/laptops', { ttl: CACHE_CONFIG.DYNAMIC_DATA, staleWhileRevalidate: true }),
+                    cachedFetch<ServerInfoEntry[]>('/api/servers', { ttl: CACHE_CONFIG.DYNAMIC_DATA, staleWhileRevalidate: true }),
+                    cachedFetch<PeripheralLogEntry[]>('/api/mouselogs', { ttl: CACHE_CONFIG.LOGS, staleWhileRevalidate: true }),
+                    cachedFetch<PeripheralLogEntry[]>('/api/keyboardlogs', { ttl: CACHE_CONFIG.LOGS, staleWhileRevalidate: true }),
+                    cachedFetch<PeripheralLogEntry[]>('/api/ssdlogs', { ttl: CACHE_CONFIG.LOGS, staleWhileRevalidate: true }),
+                    cachedFetch<PeripheralLogEntry[]>('/api/headphonelogs', { ttl: CACHE_CONFIG.LOGS, staleWhileRevalidate: true }),
+                    cachedFetch<PeripheralLogEntry[]>('/api/portablehddlogs', { ttl: CACHE_CONFIG.LOGS, staleWhileRevalidate: true })
+                ]);
+
+                setPcs(pcsData);
+                setLaptops(laptopsData);
+                setServers(serversData);
+                setMouseLogs(mouseData);
+                setKeyboardLogs(keyboardData);
+                setSsdLogs(ssdData);
+                setHeadphoneLogs(headphoneData);
+                setHddLogs(hddData);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        };
+
+        loadDashboardData();
     }, []);
 
     const inventoryItems = [
