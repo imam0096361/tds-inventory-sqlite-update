@@ -11,6 +11,8 @@ const ServerInfo = lazy(() => import('./pages/ServerInfo').then(module => ({ def
 const PeripheralLog = lazy(() => import('./pages/PeripheralLog').then(module => ({ default: module.PeripheralLog })));
 const KeyboardLog = lazy(() => import('./pages/KeyboardLog').then(module => ({ default: module.KeyboardLog })));
 const SSDLog = lazy(() => import('./pages/SSDLog').then(module => ({ default: module.SSDLog })));
+const HeadphoneLog = lazy(() => import('./pages/HeadphoneLog').then(module => ({ default: module.HeadphoneLog })));
+const PortableHDDLog = lazy(() => import('./pages/PortableHDDLog').then(module => ({ default: module.PortableHDDLog })));
 const DepartmentSummary = lazy(() => import('./pages/DepartmentSummary').then(module => ({ default: module.DepartmentSummary })));
 const ProductInventory = lazy(() => import('./pages/ProductInventory').then(module => ({ default: module.ProductInventory })));
 const Settings = lazy(() => import('./pages/Settings').then(module => ({ default: module.Settings })));
@@ -74,6 +76,8 @@ const AppContent: React.FC = () => {
                       <Route path="/mouse-log" element={<PeripheralLog />} />
                       <Route path="/keyboard-log" element={<KeyboardLog />} />
                       <Route path="/ssd-log" element={<SSDLog />} />
+                      <Route path="/headphone-log" element={<HeadphoneLog />} />
+                      <Route path="/portable-hdd-log" element={<PortableHDDLog />} />
                       <Route path="/department-summary" element={<DepartmentSummary />} />
                       <Route path="/product-inventory" element={<ProductInventory />} />
                       <Route path="/ai-assistant" element={<AIAssistant />} />

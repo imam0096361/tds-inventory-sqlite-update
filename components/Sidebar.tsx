@@ -54,6 +54,24 @@ export const Sidebar: React.FC = () => {
         { to: '/mouse-log', icon: <MouseIcon />, label: 'Mouse Log' as Page },
         { to: '/keyboard-log', icon: <KeyboardIcon />, label: 'Keyboard Log' as Page },
         { to: '/ssd-log', icon: <SSDIcon />, label: 'SSD Log' as Page },
+        { 
+          to: '/headphone-log', 
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          ), 
+          label: 'Headphone Log' as Page 
+        },
+        { 
+          to: '/portable-hdd-log', 
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+            </svg>
+          ), 
+          label: 'Portable HDD Log' as Page 
+        },
         { to: '/product-inventory', icon: <BoxIcon />, label: 'Product Inventory' as Page },
       ],
     },

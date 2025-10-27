@@ -162,6 +162,36 @@ async function initDatabase() {
             )
         `);
 
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS "headphoneLogs" (
+                id TEXT PRIMARY KEY,
+                "productName" TEXT,
+                "serialNumber" TEXT,
+                "pcName" TEXT,
+                "pcUsername" TEXT,
+                department TEXT,
+                date TEXT,
+                time TEXT,
+                "servicedBy" TEXT,
+                comment TEXT
+            )
+        `);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS "portableHDDLogs" (
+                id TEXT PRIMARY KEY,
+                "productName" TEXT,
+                "serialNumber" TEXT,
+                "pcName" TEXT,
+                "pcUsername" TEXT,
+                department TEXT,
+                date TEXT,
+                time TEXT,
+                "servicedBy" TEXT,
+                comment TEXT
+            )
+        `);
+
         // Users table for authentication
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
@@ -674,6 +704,96 @@ app.delete('/api/ssdlogs/:id', async (req, res) => {
     }
 });
 
+// ============= HEADPHONE LOG ENDPOINTS =============
+app.get('/api/headphonelogs', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM "headphoneLogs"');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/headphonelogs', async (req, res) => {
+    const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO "headphoneLogs" (id, "productName", "serialNumber", "pcName", "pcUsername", department, date, time, "servicedBy", comment) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+            [id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment]
+        );
+        res.json({ id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/headphonelogs/:id', async (req, res) => {
+    const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE "headphoneLogs" SET "productName" = $1, "serialNumber" = $2, "pcName" = $3, "pcUsername" = $4, department = $5, date = $6, time = $7, "servicedBy" = $8, comment = $9 WHERE id = $10',
+            [productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment, req.params.id]
+        );
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/headphonelogs/:id', async (req, res) => {
+    try {
+        const result = await pool.query('DELETE FROM "headphoneLogs" WHERE id = $1', [req.params.id]);
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============= PORTABLE HDD LOG ENDPOINTS =============
+app.get('/api/portablehddlogs', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM "portableHDDLogs"');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/portablehddlogs', async (req, res) => {
+    const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO "portableHDDLogs" (id, "productName", "serialNumber", "pcName", "pcUsername", department, date, time, "servicedBy", comment) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+            [id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment]
+        );
+        res.json({ id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.put('/api/portablehddlogs/:id', async (req, res) => {
+    const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE "portableHDDLogs" SET "productName" = $1, "serialNumber" = $2, "pcName" = $3, "pcUsername" = $4, department = $5, date = $6, time = $7, "servicedBy" = $8, comment = $9 WHERE id = $10',
+            [productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment, req.params.id]
+        );
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/portablehddlogs/:id', async (req, res) => {
+    try {
+        const result = await pool.query('DELETE FROM "portableHDDLogs" WHERE id = $1', [req.params.id]);
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', database: 'postgresql' });
@@ -752,12 +872,14 @@ Available tables and their columns:
 4. mouselogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
 5. keyboardlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
 6. ssdlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
+7. headphonelogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
+8. portablehddlogs: productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment
 
 User Query: "${query}"
 
 Respond ONLY with a valid JSON object (no markdown, no explanation) in this exact format:
 {
-  "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs",
+  "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs" | "headphonelogs" | "portablehddlogs",
   "filters": {
     "fieldName": { "operator": "equals" | "contains" | "greaterThan" | "lessThan", "value": "..." }
   },
@@ -805,6 +927,12 @@ Response: {"module":"servers","filters":{"status":{"operator":"equals","value":"
                 break;
             case 'ssdlogs':
                 tableName = '"ssdLogs"';
+                break;
+            case 'headphonelogs':
+                tableName = '"headphoneLogs"';
+                break;
+            case 'portablehddlogs':
+                tableName = '"portableHDDLogs"';
                 break;
             default:
                 throw new Error('Invalid module specified');
