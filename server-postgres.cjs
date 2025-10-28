@@ -6,6 +6,58 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+// ==================== FUZZY SEARCH UTILITIES ====================
+// Levenshtein distance for typo tolerance
+function levenshteinDistance(str1, str2) {
+    const len1 = str1.length;
+    const len2 = str2.length;
+    const matrix = [];
+
+    for (let i = 0; i <= len2; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= len1; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= len2; i++) {
+        for (let j = 1; j <= len1; j++) {
+            if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
+            }
+        }
+    }
+
+    return matrix[len2][len1];
+}
+
+function findBestMatch(input, options) {
+    let bestMatch = null;
+    let lowestDistance = Infinity;
+    const maxThreshold = Math.min(3, Math.ceil(input.length * 0.3));
+
+    options.forEach(option => {
+        const distance = levenshteinDistance(input.toLowerCase(), option.toLowerCase());
+        if (distance < lowestDistance && distance <= maxThreshold) {
+            lowestDistance = distance;
+            bestMatch = option;
+        }
+    });
+
+    const confidence = bestMatch 
+        ? Math.round((1 - lowestDistance / maxThreshold) * 100)
+        : 0;
+
+    return { match: bestMatch, confidence };
+}
+
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -253,6 +305,224 @@ const authenticateToken = (req, res, next) => {
         return res.status(403).json({ error: 'Invalid or expired token' });
     }
 };
+
+// ==================== AI INSIGHTS GENERATION ====================
+async function generateInsights(data, module, filters) {
+    const insights = [];
+    
+    try {
+        if (module === 'all' && typeof data === 'object') {
+            // Cross-module insights
+            const moduleCount = Object.keys(data).length;
+            const totalItems = Object.values(data).reduce((sum, items) => sum + items.length, 0);
+            
+            insights.push({
+                type: 'summary',
+                icon: '📊',
+                text: `Found ${totalItems} items across ${moduleCount} modules`,
+                priority: 'low'
+            });
+            
+            // Check for PC issues
+            if (data.pcs && data.pcs.some(pc => pc.status === 'Repair')) {
+                const repairCount = data.pcs.filter(pc => pc.status === 'Repair').length;
+                insights.push({
+                    type: 'warning',
+                    icon: '⚠️',
+                    text: `${repairCount} PC(s) need repair`,
+                    action: 'Create maintenance ticket',
+                    priority: 'high'
+                });
+            }
+            
+            // Check for laptop battery issues
+            if (data.laptops && data.laptops.some(laptop => laptop.hardwareStatus === 'Battery Problem')) {
+                const batteryCount = data.laptops.filter(l => l.hardwareStatus === 'Battery Problem').length;
+                insights.push({
+                    type: 'warning',
+                    icon: '🔋',
+                    text: `${batteryCount} laptop(s) have battery issues`,
+                    action: 'Schedule battery replacement',
+                    priority: 'medium'
+                });
+            }
+            
+            // Cost estimation
+            const peripheralCount = (data.mouseLogs?.length || 0) + 
+                                   (data.keyboardLogs?.length || 0) + 
+                                   (data.headphoneLogs?.length || 0);
+            if (peripheralCount > 0) {
+                insights.push({
+                    type: 'info',
+                    icon: '💰',
+                    text: `Estimated peripheral value: $${peripheralCount * 25}`,
+                    details: 'Based on average peripheral costs ($25 per item)',
+                    priority: 'low'
+                });
+            }
+        } else if (module === 'pcs' && Array.isArray(data)) {
+            // PC-specific insights
+            const avgRam = data.reduce((sum, pc) => {
+                const ramMatch = pc.ram?.match(/(\d+)/);
+                return sum + (ramMatch ? parseInt(ramMatch[1]) : 0);
+            }, 0) / data.length;
+            
+            insights.push({
+                type: 'info',
+                icon: '📈',
+                text: `Average RAM: ${Math.round(avgRam)} GB`,
+                recommendation: avgRam < 8 ? 'Consider upgrading to 16 GB for better performance' : null,
+                priority: 'medium'
+            });
+            
+            // OS distribution check
+            const oldOS = data.filter(pc => 
+                pc.os?.includes('Windows 7') || pc.os?.includes('Windows 8')
+            ).length;
+            
+            if (oldOS > 0) {
+                insights.push({
+                    type: 'alert',
+                    icon: '🚨',
+                    text: `${oldOS} PC(s) running outdated OS`,
+                    action: 'Urgent: Schedule OS upgrade',
+                    recommendation: 'Windows 7/8 are no longer supported and pose security risks',
+                    priority: 'critical'
+                });
+            }
+        } else if (module === 'laptops' && Array.isArray(data)) {
+            // Laptop-specific insights
+            const problemLaptops = data.filter(l => 
+                l.hardwareStatus !== 'Good'
+            ).length;
+            
+            if (problemLaptops > 0) {
+                insights.push({
+                    type: 'warning',
+                    icon: '💻',
+                    text: `${problemLaptops} of ${data.length} laptops need attention`,
+                    action: 'Review hardware status',
+                    priority: 'high'
+                });
+            }
+        } else if (module === 'servers' && Array.isArray(data)) {
+            // Server-specific insights
+            const offline = data.filter(s => s.status === 'Offline').length;
+            const maintenance = data.filter(s => s.status === 'Maintenance').length;
+            
+            if (offline > 0) {
+                insights.push({
+                    type: 'alert',
+                    icon: '🔴',
+                    text: `${offline} server(s) are offline`,
+                    action: 'Investigate server issues immediately',
+                    priority: 'critical'
+                });
+            }
+            
+            if (maintenance > 0) {
+                insights.push({
+                    type: 'warning',
+                    icon: '🔧',
+                    text: `${maintenance} server(s) in maintenance`,
+                    priority: 'medium'
+                });
+            }
+        }
+        
+        // Always show result count
+        if (Array.isArray(data) && data.length > 0) {
+            insights.unshift({
+                type: 'summary',
+                icon: '✅',
+                text: `Found ${data.length} matching ${module}`,
+                priority: 'low'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error generating insights:', error);
+    }
+    
+    return insights;
+}
+
+// ==================== GENERATE RECOMMENDATIONS ====================
+function generateRecommendations(data, module, query, filters) {
+    const recommendations = [];
+    
+    try {
+        // Always offer export options
+        if (data && ((Array.isArray(data) && data.length > 0) || 
+            (typeof data === 'object' && Object.keys(data).length > 0))) {
+            
+            recommendations.push({
+                id: 'export_pdf',
+                icon: '📄',
+                text: 'Export as Professional PDF Report',
+                action: 'export_pdf',
+                priority: 1
+            });
+            
+            recommendations.push({
+                id: 'export_csv',
+                icon: '📊',
+                text: 'Export as CSV for Excel',
+                action: 'export_csv',
+                priority: 2
+            });
+        }
+        
+        // Context-aware suggestions based on module
+        if (module === 'all') {
+            // Cross-module search recommendations
+            recommendations.push({
+                id: 'filter_by_module',
+                icon: '🔍',
+                text: 'Filter results by specific module',
+                action: 'run_query',
+                query: `Show me just the PCs from previous results`,
+                priority: 3
+            });
+        } else if (module === 'pcs') {
+            recommendations.push({
+                id: 'check_department',
+                icon: '🏢',
+                text: 'View department summary',
+                action: 'run_query',
+                query: `Show me all IT department equipment`,
+                priority: 3
+            });
+        } else if (module === 'laptops' && filters?.username) {
+            recommendations.push({
+                id: 'user_all_equipment',
+                icon: '👤',
+                text: `View all equipment for this user`,
+                action: 'run_query',
+                query: `Show me everything about user ${filters.username.value}`,
+                priority: 4
+            });
+        }
+        
+        // If repairs/issues found, suggest maintenance
+        if (Array.isArray(data) && data.some(item => 
+            item.status === 'Repair' || item.hardwareStatus === 'Battery Problem'
+        )) {
+            recommendations.push({
+                id: 'schedule_maintenance',
+                icon: '🔧',
+                text: 'Schedule maintenance for problematic items',
+                action: 'create_ticket',
+                priority: 5
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error generating recommendations:', error);
+    }
+    
+    return recommendations;
+}
 
 const isAdmin = (req, res, next) => {
     if (req.user.role !== 'admin') {
@@ -810,6 +1080,143 @@ if (process.env.GEMINI_API_KEY && process.env.AI_ENABLED === 'true') {
     console.log('✅ Gemini AI initialized');
 }
 
+// ==================== AUTOCOMPLETE SUGGESTIONS ENDPOINT ====================
+app.post('/api/ai-suggestions', authenticateToken, async (req, res) => {
+    const { partial } = req.body;
+    
+    if (!partial || partial.length < 2) {
+        return res.json({ suggestions: [] });
+    }
+    
+    try {
+        const suggestions = [];
+        const partialLower = partial.toLowerCase();
+        
+        // Get unique usernames from all modules
+        const usernameQuery = await pool.query(`
+            SELECT DISTINCT username FROM (
+                SELECT username FROM pcs WHERE username ILIKE $1
+                UNION
+                SELECT username FROM laptops WHERE username ILIKE $1
+                UNION
+                SELECT "pcUsername" as username FROM "mouseLogs" WHERE "pcUsername" ILIKE $1
+                LIMIT 5
+            ) AS users WHERE username IS NOT NULL
+        `, [`%${partial}%`]);
+        
+        usernameQuery.rows.forEach(row => {
+            if (row.username) {
+                suggestions.push({
+                    id: `user-${row.username}`,
+                    text: `Show me everything about user ${row.username}`,
+                    type: 'user',
+                    icon: '👤',
+                    priority: 1,
+                    metadata: { username: row.username }
+                });
+            }
+        });
+        
+        // Get unique departments
+        const deptQuery = await pool.query(`
+            SELECT DISTINCT department FROM (
+                SELECT department FROM pcs WHERE department ILIKE $1
+                UNION
+                SELECT department FROM laptops WHERE department ILIKE $1
+                LIMIT 3
+            ) AS depts WHERE department IS NOT NULL
+        `, [`%${partial}%`]);
+        
+        deptQuery.rows.forEach(row => {
+            if (row.department) {
+                suggestions.push({
+                    id: `dept-${row.department}`,
+                    text: `Find all equipment in ${row.department} department`,
+                    type: 'department',
+                    icon: '🏢',
+                    priority: 2,
+                    metadata: { department: row.department }
+                });
+            }
+        });
+        
+        // Hardware-based suggestions
+        if (partialLower.includes('i7') || partialLower.includes('core i7')) {
+            suggestions.push({
+                id: 'hw-i7-16gb',
+                text: 'Show me all PCs with Core i7 and 16GB RAM',
+                type: 'hardware',
+                icon: '💻',
+                priority: 3
+            });
+            suggestions.push({
+                id: 'hw-i7-8gb',
+                text: 'Find PCs with Core i7 and 8GB RAM',
+                type: 'hardware',
+                icon: '💻',
+                priority: 4
+            });
+        }
+        
+        if (partialLower.includes('i5') || partialLower.includes('core i5')) {
+            suggestions.push({
+                id: 'hw-i5',
+                text: 'Show me all PCs with Core i5',
+                type: 'hardware',
+                icon: '💻',
+                priority: 3
+            });
+        }
+        
+        // Status-based suggestions
+        if (partialLower.includes('repair') || partialLower.includes('fix')) {
+            suggestions.push({
+                id: 'status-repair',
+                text: 'Show me all PCs that need repair',
+                type: 'status',
+                icon: '🔧',
+                priority: 3
+            });
+        }
+        
+        if (partialLower.includes('battery')) {
+            suggestions.push({
+                id: 'status-battery',
+                text: 'Find laptops with battery problems',
+                type: 'status',
+                icon: '🔋',
+                priority: 3
+            });
+        }
+        
+        // Popular query templates
+        if (suggestions.length < 3) {
+            const templates = [
+                { id: 'query-all-pcs', text: 'Show me all PCs', type: 'query', icon: '🖥️', priority: 5 },
+                { id: 'query-all-laptops', text: 'Show me all laptops', type: 'query', icon: '💻', priority: 5 },
+                { id: 'query-offline-servers', text: 'Find all offline servers', type: 'query', icon: '🔴', priority: 5 }
+            ];
+            
+            templates.forEach(template => {
+                if (template.text.toLowerCase().includes(partialLower)) {
+                    suggestions.push(template);
+                }
+            });
+        }
+        
+        // Sort by priority and limit to top 8
+        suggestions.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+        
+        res.json({ 
+            suggestions: suggestions.slice(0, 8)
+        });
+        
+    } catch (error) {
+        console.error('Error generating suggestions:', error);
+        res.json({ suggestions: [] });
+    }
+});
+
 // AI Query Endpoint
 app.post('/api/ai-query', authenticateToken, async (req, res) => {
     const { query } = req.body;
@@ -1170,6 +1577,10 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
 
             console.log(`✅ Cross-module search complete: ${totalCount} items found across ${Object.keys(aggregatedData).length} modules`);
 
+            // Generate insights and recommendations
+            const insights = await generateInsights(aggregatedData, 'all', filters);
+            const recommendations = generateRecommendations(aggregatedData, 'all', query, filters);
+
             return res.json({
                 success: true,
                 data: aggregatedData,
@@ -1180,7 +1591,9 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
                 moduleBreakdown: Object.keys(aggregatedData).reduce((acc, mod) => {
                     acc[mod] = aggregatedData[mod].length;
                     return acc;
-                }, {})
+                }, {}),
+                insights: insights,
+                recommendations: recommendations
             });
         }
 
@@ -1257,13 +1670,19 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
         // Execute query
         const dbResult = await pool.query(sqlQuery, values);
 
+        // Generate insights and recommendations
+        const insights = await generateInsights(dbResult.rows, module, filters);
+        const recommendations = generateRecommendations(dbResult.rows, module, query, filters);
+
         res.json({
             success: true,
             data: dbResult.rows,
             module: module,
             filters: filters,
             interpretation: interpretation,
-            resultCount: dbResult.rows.length
+            resultCount: dbResult.rows.length,
+            insights: insights,
+            recommendations: recommendations
         });
 
     } catch (error) {

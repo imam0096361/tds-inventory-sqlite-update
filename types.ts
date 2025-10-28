@@ -100,6 +100,9 @@ export interface User {
 export interface AIQueryRequest {
   query: string;
   module?: string;
+  conversationId?: string;
+  previousMessages?: AIMessage[];
+  context?: Record<string, any>;
 }
 
 export interface AIQueryResponse {
@@ -111,6 +114,11 @@ export interface AIQueryResponse {
   interpretation?: string;
   resultCount?: number;
   moduleBreakdown?: Record<string, number>; // For multi-module queries
+  insights?: AIInsight[]; // AI-generated insights
+  recommendations?: AIRecommendation[]; // Context-aware next actions
+  fuzzyCorrections?: FuzzyCorrection[]; // Typo corrections applied
+  operation?: 'query' | 'update' | 'delete' | 'create'; // Operation type for batch operations
+  affected?: number; // Number of items affected (for batch operations)
 }
 
 export interface AIQueryHistory {
@@ -119,4 +127,63 @@ export interface AIQueryHistory {
   timestamp: string;
   resultCount: number;
   module?: string;
+}
+
+// Conversational AI
+export interface AIConversation {
+  id: string;
+  messages: AIMessage[];
+  context: Record<string, any>;
+  startedAt: string;
+  lastUpdated?: string;
+}
+
+export interface AIMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  data?: any;
+  insights?: AIInsight[];
+  recommendations?: AIRecommendation[];
+}
+
+// AI Insights
+export interface AIInsight {
+  type: 'info' | 'warning' | 'alert' | 'success' | 'summary';
+  icon: string;
+  text: string;
+  action?: string;
+  details?: string;
+  recommendation?: string;
+  priority?: 'low' | 'medium' | 'high' | 'critical';
+}
+
+// Context-Aware Recommendations
+export interface AIRecommendation {
+  id: string;
+  icon: string;
+  text: string;
+  action?: 'export_pdf' | 'export_csv' | 'run_query' | 'email_report' | 'create_ticket';
+  query?: string; // For run_query action
+  data?: any;
+  priority?: number;
+}
+
+// Fuzzy Search
+export interface FuzzyCorrection {
+  field: string;
+  original: string;
+  corrected: string;
+  confidence: number;
+}
+
+// Autocomplete Suggestions
+export interface AutocompleteSuggestion {
+  id: string;
+  text: string;
+  type: 'user' | 'department' | 'hardware' | 'status' | 'query';
+  icon?: string;
+  priority?: number;
+  metadata?: Record<string, any>;
 }
