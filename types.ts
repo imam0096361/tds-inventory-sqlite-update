@@ -1,4 +1,4 @@
-export type Page = 'Dashboard' | 'PC Info' | 'Laptop Info' | 'Server Info' | 'Mouse Log' | 'Keyboard Log' | 'SSD Log' | 'Headphone Log' | 'Portable HDD Log' | 'Department Summary' | 'Product Inventory' | 'Settings' | 'User Management' | 'AI Assistant';
+export type Page = 'Dashboard' | 'PC Info' | 'Laptop Info' | 'Server Info' | 'Mouse Log' | 'Keyboard Log' | 'SSD Log' | 'Headphone Log' | 'Portable HDD Log' | 'Department Summary' | 'Product Inventory' | 'Settings' | 'User Management' | 'AI Assistant' | 'Cost Management';
 
 export interface PeripheralLogEntry {
   id: string;
@@ -186,4 +186,102 @@ export interface AutocompleteSuggestion {
   icon?: string;
   priority?: number;
   metadata?: Record<string, any>;
+}
+
+// ==================== COST MANAGEMENT TYPES ====================
+
+// Maintenance Cost
+export interface MaintenanceCost {
+  id: string;
+  asset_type: string;
+  asset_id: string;
+  asset_name?: string;
+  cost: number;
+  date: string;
+  description?: string;
+  service_provider?: string;
+  category?: string;
+  department?: string;
+  created_by?: string;
+  created_at?: string;
+}
+
+// Budget
+export interface Budget {
+  id: string;
+  department: string;
+  year: number;
+  quarter?: number;
+  category: string;
+  allocated_amount: number;
+  spent_amount: number;
+  notes?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Cost Center
+export interface CostCenter {
+  id: string;
+  department: string;
+  cost_center_code: string;
+  manager_name?: string;
+  annual_budget?: number;
+  notes?: string;
+  created_at?: string;
+}
+
+// Financial Summary
+export interface FinancialSummary {
+  totalAssetValue: number;
+  totalMaintenanceCosts: number;
+  thisMonthSpending: number;
+  annualBudget: number;
+  annualSpent: number;
+}
+
+// Cost by Department
+export interface DepartmentCost {
+  department: string;
+  asset_count: number;
+  total_cost: number;
+}
+
+// Depreciation Data
+export interface DepreciationData {
+  id: string;
+  name: string;
+  type: string;
+  department?: string;
+  purchaseCost: number;
+  annualDepreciation: number;
+  totalDepreciation: number;
+  currentValue: number;
+  ageInYears: string;
+}
+
+// TCO Data
+export interface TCOData {
+  asset: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  costs: {
+    purchase: number;
+    maintenance: number;
+    operating: number;
+    salvage: number;
+    total: number;
+    annualTCO: number;
+  };
+  ageInYears: string;
+}
+
+// Monthly Trend
+export interface MonthlyTrend {
+  month: string;
+  total_cost: number;
+  transaction_count: number;
 }

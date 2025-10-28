@@ -20,6 +20,7 @@ const Settings = lazy(() => import('./pages/Settings').then(module => ({ default
 const Login = lazy(() => import('./pages/Login'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const AIAssistant = lazy(() => import('./pages/AIAssistant').then(module => ({ default: module.AIAssistant })));
+const CostManagement = lazy(() => import('./pages/CostManagement'));
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -82,6 +83,7 @@ const AppContent: React.FC = () => {
                       <Route path="/department-summary" element={<DepartmentSummary />} />
                       <Route path="/product-inventory" element={<ProductInventory />} />
                       <Route path="/ai-assistant" element={<AIAssistant />} />
+                      <Route path="/cost-management" element={<CostManagement />} />
                       <Route path="/user-management" element={<UserManagement />} />
                       <Route path="/settings" element={<Settings />} />
                     </Routes>
