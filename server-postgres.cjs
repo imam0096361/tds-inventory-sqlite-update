@@ -626,6 +626,16 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
+// Finance or Admin access middleware
+const isFinanceOrAdmin = (req, res, next) => {
+    if (req.user.role !== 'admin' && req.user.role !== 'finance') {
+        return res.status(403).json({ 
+            error: 'Access denied. Finance or Admin role required for cost management features.' 
+        });
+    }
+    next();
+};
+
 // ============= AUTHENTICATION ENDPOINTS =============
 
 // Login
@@ -1895,6 +1905,428 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
             error: error.message || 'Failed to process AI query',
             details: error.toString()
         });
+    }
+});
+
+// ==========================================
+// COST MANAGEMENT API ENDPOINTS
+// ==========================================
+
+// ============= MAINTENANCE COSTS =============
+
+// Get all maintenance costs
+app.get('/api/maintenance-costs', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT * FROM maintenance_costs 
+            ORDER BY date DESC, created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get maintenance costs by asset
+app.get('/api/maintenance-costs/asset/:assetType/:assetId', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const { assetType, assetId } = req.params;
+        const result = await pool.query(
+            'SELECT * FROM maintenance_costs WHERE asset_type = $1 AND asset_id = $2 ORDER BY date DESC',
+            [assetType, assetId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add maintenance cost
+app.post('/api/maintenance-costs', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    const { id, asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO maintenance_costs 
+            (id, asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department, created_by) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [id, asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department, req.user.username]
+        );
+        res.json({ id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update maintenance cost
+app.put('/api/maintenance-costs/:id', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    const { asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE maintenance_costs 
+            SET asset_type = $1, asset_id = $2, asset_name = $3, cost = $4, date = $5, 
+                description = $6, service_provider = $7, category = $8, department = $9 
+            WHERE id = $10`,
+            [asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department, req.params.id]
+        );
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete maintenance cost
+app.delete('/api/maintenance-costs/:id', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const result = await pool.query('DELETE FROM maintenance_costs WHERE id = $1', [req.params.id]);
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============= BUDGETS =============
+
+// Get all budgets
+app.get('/api/budgets', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const { year, department } = req.query;
+        let query = 'SELECT * FROM budgets WHERE 1=1';
+        const params = [];
+        let paramIndex = 1;
+        
+        if (year) {
+            query += ` AND year = $${paramIndex}`;
+            params.push(year);
+            paramIndex++;
+        }
+        if (department) {
+            query += ` AND department = $${paramIndex}`;
+            params.push(department);
+            paramIndex++;
+        }
+        
+        query += ' ORDER BY year DESC, quarter DESC, department';
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Create or update budget
+app.post('/api/budgets', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    const { id, department, year, quarter, category, allocated_amount, spent_amount, notes } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO budgets (id, department, year, quarter, category, allocated_amount, spent_amount, notes, created_by) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ON CONFLICT (department, year, quarter, category) 
+            DO UPDATE SET allocated_amount = $6, spent_amount = $7, notes = $8, updated_at = CURRENT_TIMESTAMP`,
+            [id, department, year, quarter, category, allocated_amount, spent_amount || 0, notes, req.user.username]
+        );
+        res.json({ id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update budget
+app.put('/api/budgets/:id', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    const { allocated_amount, spent_amount, notes } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE budgets 
+            SET allocated_amount = $1, spent_amount = $2, notes = $3, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $4`,
+            [allocated_amount, spent_amount, notes, req.params.id]
+        );
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete budget
+app.delete('/api/budgets/:id', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const result = await pool.query('DELETE FROM budgets WHERE id = $1', [req.params.id]);
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============= COST CENTERS =============
+
+// Get all cost centers
+app.get('/api/cost-centers', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM cost_centers ORDER BY department');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Create cost center
+app.post('/api/cost-centers', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    const { id, department, cost_center_code, manager_name, annual_budget, notes } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO cost_centers (id, department, cost_center_code, manager_name, annual_budget, notes) VALUES ($1, $2, $3, $4, $5, $6)',
+            [id, department, cost_center_code, manager_name, annual_budget, notes]
+        );
+        res.json({ id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update cost center
+app.put('/api/cost-centers/:id', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    const { cost_center_code, manager_name, annual_budget, notes } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE cost_centers SET cost_center_code = $1, manager_name = $2, annual_budget = $3, notes = $4 WHERE id = $5',
+            [cost_center_code, manager_name, annual_budget, notes, req.params.id]
+        );
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete cost center
+app.delete('/api/cost-centers/:id', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const result = await pool.query('DELETE FROM cost_centers WHERE id = $1', [req.params.id]);
+        res.json({ changes: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ============= FINANCIAL REPORTS & ANALYTICS =============
+
+// Get financial summary
+app.get('/api/financial/summary', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        // Total asset value
+        const assetsQuery = await pool.query(`
+            SELECT 
+                SUM(COALESCE(purchase_cost, 0)) as total_pcs FROM pcs 
+            UNION ALL
+            SELECT SUM(COALESCE(purchase_cost, 0)) FROM laptops
+            UNION ALL
+            SELECT SUM(COALESCE(purchase_cost, 0)) FROM servers
+        `);
+        
+        const totalAssets = assetsQuery.rows.reduce((sum, row) => sum + parseFloat(row.total_pcs || 0), 0);
+        
+        // Total maintenance costs (last 12 months)
+        const maintenanceQuery = await pool.query(`
+            SELECT SUM(cost) as total_maintenance 
+            FROM maintenance_costs 
+            WHERE date >= CURRENT_DATE - INTERVAL '12 months'
+        `);
+        
+        // This month spending
+        const thisMonthQuery = await pool.query(`
+            SELECT SUM(cost) as month_spending 
+            FROM maintenance_costs 
+            WHERE EXTRACT(YEAR FROM date) = EXTRACT(YEAR FROM CURRENT_DATE)
+            AND EXTRACT(MONTH FROM date) = EXTRACT(MONTH FROM CURRENT_DATE)
+        `);
+        
+        // Budget summary
+        const budgetQuery = await pool.query(`
+            SELECT 
+                SUM(allocated_amount) as total_budget,
+                SUM(spent_amount) as total_spent
+            FROM budgets
+            WHERE year = EXTRACT(YEAR FROM CURRENT_DATE)
+        `);
+        
+        res.json({
+            totalAssetValue: parseFloat(totalAssets || 0),
+            totalMaintenanceCosts: parseFloat(maintenanceQuery.rows[0]?.total_maintenance || 0),
+            thisMonthSpending: parseFloat(thisMonthQuery.rows[0]?.month_spending || 0),
+            annualBudget: parseFloat(budgetQuery.rows[0]?.total_budget || 0),
+            annualSpent: parseFloat(budgetQuery.rows[0]?.total_spent || 0)
+        });
+    } catch (err) {
+        console.error('Financial summary error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get cost by department
+app.get('/api/financial/cost-by-department', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                department,
+                COUNT(*) as asset_count,
+                SUM(COALESCE(purchase_cost, 0)) as total_cost
+            FROM (
+                SELECT department, purchase_cost FROM pcs WHERE department IS NOT NULL
+                UNION ALL
+                SELECT department, purchase_cost FROM laptops WHERE department IS NOT NULL
+                UNION ALL
+                SELECT department, purchase_cost FROM servers WHERE department IS NOT NULL
+            ) AS all_assets
+            GROUP BY department
+            ORDER BY total_cost DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get depreciation report
+app.get('/api/financial/depreciation', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const calculateDepreciation = (purchaseCost, purchaseDate, depreciationYears) => {
+            if (!purchaseCost || !purchaseDate || !depreciationYears) return null;
+            
+            const cost = parseFloat(purchaseCost);
+            const years = parseFloat(depreciationYears);
+            const annualDepreciation = cost / years;
+            
+            const purchase = new Date(purchaseDate);
+            const now = new Date();
+            const ageInYears = (now - purchase) / (1000 * 60 * 60 * 24 * 365);
+            
+            const totalDepreciation = Math.min(annualDepreciation * ageInYears, cost);
+            const currentValue = Math.max(cost - totalDepreciation, 0);
+            
+            return {
+                purchaseCost: cost,
+                annualDepreciation,
+                totalDepreciation,
+                currentValue,
+                ageInYears: ageInYears.toFixed(1)
+            };
+        };
+        
+        // Get all assets with cost data
+        const pcsQuery = await pool.query('SELECT id, "pcName" as name, purchase_cost, purchase_date, depreciation_years, department FROM pcs WHERE purchase_cost > 0');
+        const laptopsQuery = await pool.query('SELECT id, "pcName" as name, purchase_cost, purchase_date, depreciation_years, department FROM laptops WHERE purchase_cost > 0');
+        const serversQuery = await pool.query('SELECT id, "serverID" as name, purchase_cost, purchase_date, depreciation_years, department FROM servers WHERE purchase_cost > 0');
+        
+        const assets = [
+            ...pcsQuery.rows.map(a => ({ ...a, type: 'PC', ...calculateDepreciation(a.purchase_cost, a.purchase_date, a.depreciation_years) })),
+            ...laptopsQuery.rows.map(a => ({ ...a, type: 'Laptop', ...calculateDepreciation(a.purchase_cost, a.purchase_date, a.depreciation_years) })),
+            ...serversQuery.rows.map(a => ({ ...a, type: 'Server', ...calculateDepreciation(a.purchase_cost, a.purchase_date, a.depreciation_years) }))
+        ].filter(a => a.currentValue !== null);
+        
+        res.json(assets);
+    } catch (err) {
+        console.error('Depreciation error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get TCO (Total Cost of Ownership) analysis
+app.get('/api/financial/tco', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const { assetType, assetId } = req.query;
+        
+        if (!assetType || !assetId) {
+            return res.status(400).json({ error: 'assetType and assetId required' });
+        }
+        
+        // Get asset details
+        let assetQuery;
+        let tableName;
+        
+        switch(assetType.toLowerCase()) {
+            case 'pc':
+                tableName = 'pcs';
+                assetQuery = await pool.query('SELECT * FROM pcs WHERE id = $1', [assetId]);
+                break;
+            case 'laptop':
+                tableName = 'laptops';
+                assetQuery = await pool.query('SELECT * FROM laptops WHERE id = $1', [assetId]);
+                break;
+            case 'server':
+                tableName = 'servers';
+                assetQuery = await pool.query('SELECT * FROM servers WHERE id = $1', [assetId]);
+                break;
+            default:
+                return res.status(400).json({ error: 'Invalid asset type' });
+        }
+        
+        if (assetQuery.rows.length === 0) {
+            return res.status(404).json({ error: 'Asset not found' });
+        }
+        
+        const asset = assetQuery.rows[0];
+        
+        // Get maintenance costs
+        const maintenanceQuery = await pool.query(
+            'SELECT SUM(cost) as total FROM maintenance_costs WHERE asset_type = $1 AND asset_id = $2',
+            [assetType, assetId]
+        );
+        
+        const purchaseCost = parseFloat(asset.purchase_cost || 0);
+        const maintenanceCost = parseFloat(maintenanceQuery.rows[0]?.total || 0);
+        
+        // Calculate operating cost (estimate: 10% of purchase cost per year)
+        const ageInYears = asset.purchase_date 
+            ? (new Date() - new Date(asset.purchase_date)) / (1000 * 60 * 60 * 24 * 365)
+            : 0;
+        const operatingCost = purchaseCost * 0.1 * ageInYears;
+        
+        // Salvage value (estimate: 10% of purchase cost)
+        const salvageValue = purchaseCost * 0.1;
+        
+        const totalCostOfOwnership = purchaseCost + maintenanceCost + operatingCost - salvageValue;
+        const annualTCO = ageInYears > 0 ? totalCostOfOwnership / ageInYears : 0;
+        
+        res.json({
+            asset: {
+                id: asset.id,
+                name: asset.pcName || asset.serverID,
+                type: assetType
+            },
+            costs: {
+                purchase: purchaseCost,
+                maintenance: maintenanceCost,
+                operating: operatingCost,
+                salvage: salvageValue,
+                total: totalCostOfOwnership,
+                annualTCO: annualTCO
+            },
+            ageInYears: ageInYears.toFixed(1)
+        });
+    } catch (err) {
+        console.error('TCO error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get monthly spending trend
+app.get('/api/financial/monthly-trend', authenticateToken, isFinanceOrAdmin, async (req, res) => {
+    try {
+        const { months = 12 } = req.query;
+        
+        const result = await pool.query(`
+            SELECT 
+                TO_CHAR(date, 'YYYY-MM') as month,
+                SUM(cost) as total_cost,
+                COUNT(*) as transaction_count
+            FROM maintenance_costs
+            WHERE date >= CURRENT_DATE - INTERVAL '${months} months'
+            GROUP BY TO_CHAR(date, 'YYYY-MM')
+            ORDER BY month
+        `);
+        
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
