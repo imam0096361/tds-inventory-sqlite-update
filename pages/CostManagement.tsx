@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { FinancialSummary, DepartmentCost, DepreciationData, MaintenanceCost, Budget, MonthlyTrend } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Detect if we're on Vercel production or localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
 
 const CostManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'maintenance' | 'budgets' | 'depreciation'>('dashboard');
