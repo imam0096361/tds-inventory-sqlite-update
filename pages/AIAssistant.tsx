@@ -73,7 +73,18 @@ export const AIAssistant: React.FC = () => {
 
     const handleExport = () => {
         if (response && response.data) {
-            exportToCSV(response.data, `ai-query-results-${Date.now()}`);
+            // Handle multi-module response
+            if (response.module === 'all') {
+                // Export each module separately or combine
+                const data = response.data as Record<string, any[]>;
+                const allData = Object.entries(data).flatMap(([module, items]) => 
+                    items.map(item => ({ ...item, _module: module }))
+                );
+                exportToCSV(allData, `ai-query-all-results-${Date.now()}`);
+            } else {
+                // Single module
+                exportToCSV(response.data as any[], `ai-query-results-${Date.now()}`);
+            }
         }
     };
 
@@ -89,6 +100,12 @@ export const AIAssistant: React.FC = () => {
     };
 
     const exampleQueries = [
+        // Cross-module queries (NEW!)
+        "Show me everything about user John Doe",
+        "What equipment does Sarah Wilson have",
+        "Find all items for user Karim",
+        "Show me all things for Michael Chen",
+        // Specific queries
         "Show me all PCs with Core i7 and 8GB RAM",
         "I need core i7 all pc there 8 gb ram",
         "Find laptops in HR department with battery problems",
@@ -246,33 +263,94 @@ export const AIAssistant: React.FC = () => {
                         )}
                     </div>
 
-                    {response.data && response.data.length > 0 ? (
-                        <div className="overflow-x-auto mt-4">
-                            <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        {Object.keys(response.data[0]).map((key) => (
-                                            <th
-                                                key={key}
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            >
-                                                {key}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {response.data.map((row: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-gray-50">
-                                            {Object.values(row).map((value: any, cellIdx: number) => (
-                                                <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {value !== null && value !== undefined ? String(value) : '-'}
-                                                </td>
+                    {response.data && response.resultCount > 0 ? (
+                        <div className="mt-4 space-y-6">
+                            {/* Multi-module results */}
+                            {response.module === 'all' ? (
+                                <>
+                                    {/* Summary Cards */}
+                                    {response.moduleBreakdown && (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                            {Object.entries(response.moduleBreakdown).map(([module, count]) => (
+                                                <div key={module} className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200">
+                                                    <div className="text-sm text-gray-600 font-medium">{module}</div>
+                                                    <div className="text-2xl font-bold text-blue-600">{count as number}</div>
+                                                </div>
                                             ))}
-                                        </tr>
+                                        </div>
+                                    )}
+
+                                    {/* Results by Module */}
+                                    {Object.entries(response.data as Record<string, any[]>).map(([moduleName, items]) => (
+                                        <div key={moduleName} className="border border-gray-300 rounded-lg overflow-hidden">
+                                            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3">
+                                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white text-blue-600 font-bold">
+                                                        {items.length}
+                                                    </span>
+                                                    {moduleName.toUpperCase()}
+                                                </h3>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="min-w-full divide-y divide-gray-200">
+                                                    <thead className="bg-gray-50">
+                                                        <tr>
+                                                            {Object.keys(items[0]).filter(key => key !== 'id').map((key) => (
+                                                                <th
+                                                                    key={key}
+                                                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                                >
+                                                                    {key}
+                                                                </th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-white divide-y divide-gray-200">
+                                                        {items.map((row: any, idx: number) => (
+                                                            <tr key={idx} className="hover:bg-blue-50 transition-colors">
+                                                                {Object.entries(row).filter(([key]) => key !== 'id').map(([key, value], cellIdx: number) => (
+                                                                    <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                        {value !== null && value !== undefined ? String(value) : '-'}
+                                                                    </td>
+                                                                ))}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     ))}
-                                </tbody>
-                            </table>
+                                </>
+                            ) : (
+                                /* Single module results */
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                {Object.keys((response.data as any[])[0]).filter(key => key !== 'id').map((key) => (
+                                                    <th
+                                                        key={key}
+                                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    >
+                                                        {key}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {(response.data as any[]).map((row: any, idx: number) => (
+                                                <tr key={idx} className="hover:bg-gray-50">
+                                                    {Object.entries(row).filter(([key]) => key !== 'id').map(([key, value], cellIdx: number) => (
+                                                        <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                            {value !== null && value !== undefined ? String(value) : '-'}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="text-center py-8 text-gray-500">

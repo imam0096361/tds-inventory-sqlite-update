@@ -104,12 +104,13 @@ export interface AIQueryRequest {
 
 export interface AIQueryResponse {
   success: boolean;
-  data?: any[];
+  data?: any[] | Record<string, any[]>; // Single module (array) or multi-module (object)
   module?: string;
   filters?: Record<string, any>;
   error?: string;
   interpretation?: string;
   resultCount?: number;
+  moduleBreakdown?: Record<string, number>; // For multi-module queries
 }
 
 export interface AIQueryHistory {

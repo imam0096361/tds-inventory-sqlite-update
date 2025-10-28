@@ -960,6 +960,17 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
 - "headphones" → module: "headphonelogs"
 - "portable HDD" or "external drives" → module: "portablehddlogs"
 
+**IMPORTANT - USER/PERSON QUERIES:**
+- When query mentions a PERSON NAME (like "user Karim", "John Doe", "Sarah Wilson"):
+  → module: "all"
+  → This searches ALL modules for that person
+  → Returns PCs, Laptops, and ALL peripherals for that user
+
+**CROSS-MODULE SEARCH:**
+- "everything about user X" → module: "all", filter username/pcUsername
+- "show me all items for John" → module: "all", filter for user John
+- "what does Karim have" → module: "all", filter for user Karim
+
 === USER QUERY ===
 "${query}"
 
@@ -967,7 +978,7 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
 Respond with ONLY valid JSON (no markdown, no code blocks, no explanation):
 
 {
-  "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs" | "headphonelogs" | "portablehddlogs",
+  "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs" | "headphonelogs" | "portablehddlogs" | "all",
   "filters": {
     "fieldName": {
       "operator": "equals" | "contains" | "greaterThan" | "lessThan",
@@ -976,6 +987,8 @@ Respond with ONLY valid JSON (no markdown, no code blocks, no explanation):
   },
   "interpretation": "Brief explanation of what you understood"
 }
+
+**NOTE:** Use module: "all" when searching for a PERSON across all modules!
 
 === EXAMPLES ===
 
@@ -1006,6 +1019,15 @@ Query: "Headphones serviced this month"
 Query: "Show all PCs"
 {"module":"pcs","filters":{},"interpretation":"Retrieving all PC records"}
 
+Query: "Show me everything about user Karim"
+{"module":"all","filters":{"username":{"operator":"contains","value":"Karim"}},"interpretation":"Searching all modules for user Karim - PC, Laptop, and all peripherals"}
+
+Query: "What equipment does John Doe have"
+{"module":"all","filters":{"username":{"operator":"contains","value":"John Doe"}},"interpretation":"Finding all equipment assigned to John Doe across all modules"}
+
+Query: "Find everything for Sarah Wilson"
+{"module":"all","filters":{"username":{"operator":"contains","value":"Sarah Wilson"}},"interpretation":"Comprehensive search for Sarah Wilson in PCs, Laptops, and peripheral logs"}
+
 NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
 
         const result = await model.generateContent(prompt);
@@ -1019,7 +1041,150 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
         const parsedResponse = JSON.parse(aiResponse);
         const { module, filters, interpretation } = parsedResponse;
 
-        // Build SQL query based on AI response
+        // Special handling for "all" module - search across ALL modules!
+        if (module === 'all') {
+            console.log('🔍 CROSS-MODULE SEARCH activated!');
+            
+            // Build condition for each module
+            const buildConditions = (fieldMap) => {
+                const conditions = [];
+                const values = [];
+                let paramIndex = 1;
+
+                if (filters) {
+                    for (const [filterField, filterDef] of Object.entries(filters)) {
+                        const { operator, value } = filterDef;
+                        // Map 'username' to appropriate field for each module
+                        const actualField = fieldMap[filterField] || filterField;
+
+                        switch (operator) {
+                            case 'equals':
+                                conditions.push(`"${actualField}" = $${paramIndex}`);
+                                values.push(value);
+                                paramIndex++;
+                                break;
+                            case 'contains':
+                                conditions.push(`"${actualField}" ILIKE $${paramIndex}`);
+                                values.push(`%${value}%`);
+                                paramIndex++;
+                                break;
+                            case 'greaterThan':
+                                conditions.push(`"${actualField}" > $${paramIndex}`);
+                                values.push(value);
+                                paramIndex++;
+                                break;
+                            case 'lessThan':
+                                conditions.push(`"${actualField}" < $${paramIndex}`);
+                                values.push(value);
+                                paramIndex++;
+                                break;
+                        }
+                    }
+                }
+
+                return { conditions, values };
+            };
+
+            // Search all modules in parallel
+            const searchPromises = [];
+
+            // PCs (field: username)
+            const pcQuery = buildConditions({ username: 'username' });
+            const pcWhere = pcQuery.conditions.length > 0 ? `WHERE ${pcQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'PC' as "itemType" FROM pcs ${pcWhere}`, pcQuery.values)
+                    .then(result => ({ module: 'pcs', data: result.rows }))
+                    .catch(err => ({ module: 'pcs', data: [], error: err.message }))
+            );
+
+            // Laptops (field: username)
+            const laptopQuery = buildConditions({ username: 'username' });
+            const laptopWhere = laptopQuery.conditions.length > 0 ? `WHERE ${laptopQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'Laptop' as "itemType" FROM laptops ${laptopWhere}`, laptopQuery.values)
+                    .then(result => ({ module: 'laptops', data: result.rows }))
+                    .catch(err => ({ module: 'laptops', data: [], error: err.message }))
+            );
+
+            // Mouse Logs (field: pcUsername)
+            const mouseQuery = buildConditions({ username: 'pcUsername' });
+            const mouseWhere = mouseQuery.conditions.length > 0 ? `WHERE ${mouseQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'Mouse' as "itemType" FROM "mouseLogs" ${mouseWhere}`, mouseQuery.values)
+                    .then(result => ({ module: 'mouseLogs', data: result.rows }))
+                    .catch(err => ({ module: 'mouseLogs', data: [], error: err.message }))
+            );
+
+            // Keyboard Logs (field: pcUsername)
+            const keyboardQuery = buildConditions({ username: 'pcUsername' });
+            const keyboardWhere = keyboardQuery.conditions.length > 0 ? `WHERE ${keyboardQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'Keyboard' as "itemType" FROM "keyboardLogs" ${keyboardWhere}`, keyboardQuery.values)
+                    .then(result => ({ module: 'keyboardLogs', data: result.rows }))
+                    .catch(err => ({ module: 'keyboardLogs', data: [], error: err.message }))
+            );
+
+            // SSD Logs (field: pcUsername)
+            const ssdQuery = buildConditions({ username: 'pcUsername' });
+            const ssdWhere = ssdQuery.conditions.length > 0 ? `WHERE ${ssdQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'SSD' as "itemType" FROM "ssdLogs" ${ssdWhere}`, ssdQuery.values)
+                    .then(result => ({ module: 'ssdLogs', data: result.rows }))
+                    .catch(err => ({ module: 'ssdLogs', data: [], error: err.message }))
+            );
+
+            // Headphone Logs (field: pcUsername)
+            const headphoneQuery = buildConditions({ username: 'pcUsername' });
+            const headphoneWhere = headphoneQuery.conditions.length > 0 ? `WHERE ${headphoneQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'Headphone' as "itemType" FROM "headphoneLogs" ${headphoneWhere}`, headphoneQuery.values)
+                    .then(result => ({ module: 'headphoneLogs', data: result.rows }))
+                    .catch(err => ({ module: 'headphoneLogs', data: [], error: err.message }))
+            );
+
+            // Portable HDD Logs (field: pcUsername)
+            const hddQuery = buildConditions({ username: 'pcUsername' });
+            const hddWhere = hddQuery.conditions.length > 0 ? `WHERE ${hddQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'Portable HDD' as "itemType" FROM "portableHDDLogs" ${hddWhere}`, hddQuery.values)
+                    .then(result => ({ module: 'portableHDDLogs', data: result.rows }))
+                    .catch(err => ({ module: 'portableHDDLogs', data: [], error: err.message }))
+            );
+
+            // Execute all searches in parallel
+            const results = await Promise.all(searchPromises);
+
+            // Aggregate results
+            const aggregatedData = {};
+            let totalCount = 0;
+
+            results.forEach(({ module, data, error }) => {
+                if (error) {
+                    console.error(`Error in ${module}:`, error);
+                }
+                if (data && data.length > 0) {
+                    aggregatedData[module] = data;
+                    totalCount += data.length;
+                }
+            });
+
+            console.log(`✅ Cross-module search complete: ${totalCount} items found across ${Object.keys(aggregatedData).length} modules`);
+
+            return res.json({
+                success: true,
+                data: aggregatedData,
+                module: 'all',
+                filters: filters,
+                interpretation: interpretation,
+                resultCount: totalCount,
+                moduleBreakdown: Object.keys(aggregatedData).reduce((acc, mod) => {
+                    acc[mod] = aggregatedData[mod].length;
+                    return acc;
+                }, {})
+            });
+        }
+
+        // Regular single-module search
         let tableName;
         switch (module) {
             case 'pcs':
