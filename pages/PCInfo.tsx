@@ -10,6 +10,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { cachedFetch, CACHE_CONFIG, invalidateCache } from '../utils/cache';
 
 const emptyFormState: Omit<PCInfoEntry, 'id'> = {
     department: '',
@@ -48,10 +49,12 @@ export const PCInfo: React.FC = () => {
     const [newStatus, setNewStatus] = useState<PCInfoEntry['status']>('OK');
     const [viewingPC, setViewingPC] = useState<PCInfoEntry | null>(null);
 
+    // Load PCs with smart caching - INSTANT on 2nd visit!
     useEffect(() => {
-        fetch('/api/pcs')
-            .then(res => res.json())
-            .then(data => setPcs(data));
+        cachedFetch<PCInfoEntry[]>('/api/pcs', {
+            ttl: CACHE_CONFIG.STATIC_DATA,
+            staleWhileRevalidate: true
+        }).then(data => setPcs(data));
     }, []);
 
     useEffect(() => {
@@ -91,6 +94,8 @@ export const PCInfo: React.FC = () => {
         await fetch(`/api/pcs/${pcToDelete.id}`, { method: 'DELETE' });
         setPcs(pcs.filter(pc => pc.id !== pcToDelete.id));
         setPcToDelete(null);
+        // Invalidate cache so next visit gets fresh data
+        invalidateCache(['/api/pcs']);
     };
 
     const handleCancelDelete = () => {
@@ -134,6 +139,8 @@ export const PCInfo: React.FC = () => {
             setPcs([...pcs, newPC]);
         }
         setIsModalOpen(false);
+        // Invalidate cache so next visit gets fresh data
+        invalidateCache(['/api/pcs']);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

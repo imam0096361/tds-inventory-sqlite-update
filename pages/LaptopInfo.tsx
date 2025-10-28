@@ -10,6 +10,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { cachedFetch, CACHE_CONFIG, invalidateCache } from '../utils/cache';
 
 const emptyFormState: Omit<LaptopInfoEntry, 'id'> = {
     pcName: '',
@@ -47,10 +48,12 @@ export const LaptopInfo: React.FC = () => {
     const [newStatusValue, setNewStatusValue] = useState<LaptopInfoEntry['hardwareStatus'] | string>('Good');
     const [viewingLaptop, setViewingLaptop] = useState<LaptopInfoEntry | null>(null);
 
+    // Load Laptops with smart caching - INSTANT on 2nd visit!
     useEffect(() => {
-        fetch('/api/laptops')
-            .then(res => res.json())
-            .then(data => setLaptops(data));
+        cachedFetch<LaptopInfoEntry[]>('/api/laptops', {
+            ttl: CACHE_CONFIG.STATIC_DATA,
+            staleWhileRevalidate: true
+        }).then(data => setLaptops(data));
     }, []);
 
     useEffect(() => {
@@ -94,6 +97,8 @@ export const LaptopInfo: React.FC = () => {
         await fetch(`/api/laptops/${laptopToDelete.id}`, { method: 'DELETE' });
         setLaptops(laptops.filter(laptop => laptop.id !== laptopToDelete.id));
         setLaptopToDelete(null);
+        // Invalidate cache so next visit gets fresh data
+        invalidateCache(['/api/laptops']);
     };
 
     const handleCancelDelete = () => {
@@ -118,6 +123,8 @@ export const LaptopInfo: React.FC = () => {
             setLaptops([...laptops, newLaptop]);
         }
         setIsModalOpen(false);
+        // Invalidate cache so next visit gets fresh data
+        invalidateCache(['/api/laptops']);
     };
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
