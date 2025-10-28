@@ -278,6 +278,101 @@ async function initDatabase() {
             console.log('✅ Default admin user created (username: admin, password: admin123)');
         }
 
+        // ==================== COST MANAGEMENT SCHEMA ====================
+        console.log('💰 Adding cost management fields...');
+
+        // Add cost fields to PCs table
+        await client.query(`
+            ALTER TABLE pcs 
+            ADD COLUMN IF NOT EXISTS purchase_cost DECIMAL(10,2) DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS purchase_date DATE,
+            ADD COLUMN IF NOT EXISTS warranty_end DATE,
+            ADD COLUMN IF NOT EXISTS supplier TEXT,
+            ADD COLUMN IF NOT EXISTS depreciation_years INTEGER DEFAULT 5
+        `);
+
+        // Add cost fields to Laptops table
+        await client.query(`
+            ALTER TABLE laptops 
+            ADD COLUMN IF NOT EXISTS purchase_cost DECIMAL(10,2) DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS purchase_date DATE,
+            ADD COLUMN IF NOT EXISTS warranty_end DATE,
+            ADD COLUMN IF NOT EXISTS supplier TEXT,
+            ADD COLUMN IF NOT EXISTS depreciation_years INTEGER DEFAULT 3
+        `);
+
+        // Add cost fields to Servers table
+        await client.query(`
+            ALTER TABLE servers 
+            ADD COLUMN IF NOT EXISTS purchase_cost DECIMAL(10,2) DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS purchase_date DATE,
+            ADD COLUMN IF NOT EXISTS warranty_end DATE,
+            ADD COLUMN IF NOT EXISTS supplier TEXT,
+            ADD COLUMN IF NOT EXISTS depreciation_years INTEGER DEFAULT 7
+        `);
+
+        // Add cost fields to peripheral logs
+        const peripheralTables = ['mouseLogs', 'keyboardLogs', 'ssdLogs', 'headphoneLogs', 'portableHDDLogs'];
+        for (const table of peripheralTables) {
+            await client.query(`
+                ALTER TABLE "${table}" 
+                ADD COLUMN IF NOT EXISTS purchase_cost DECIMAL(10,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS purchase_date DATE,
+                ADD COLUMN IF NOT EXISTS warranty_months INTEGER DEFAULT 12,
+                ADD COLUMN IF NOT EXISTS supplier TEXT
+            `);
+        }
+
+        // Create Maintenance Costs table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS maintenance_costs (
+                id TEXT PRIMARY KEY,
+                asset_type TEXT NOT NULL,
+                asset_id TEXT NOT NULL,
+                asset_name TEXT,
+                cost DECIMAL(10,2) NOT NULL,
+                date DATE NOT NULL,
+                description TEXT,
+                service_provider TEXT,
+                category TEXT,
+                department TEXT,
+                created_by TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create Budgets table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS budgets (
+                id TEXT PRIMARY KEY,
+                department TEXT NOT NULL,
+                year INTEGER NOT NULL,
+                quarter INTEGER,
+                category TEXT NOT NULL,
+                allocated_amount DECIMAL(10,2) NOT NULL,
+                spent_amount DECIMAL(10,2) DEFAULT 0,
+                notes TEXT,
+                created_by TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(department, year, quarter, category)
+            )
+        `);
+
+        // Create Cost Centers table (for department allocation)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS cost_centers (
+                id TEXT PRIMARY KEY,
+                department TEXT UNIQUE NOT NULL,
+                cost_center_code TEXT UNIQUE NOT NULL,
+                manager_name TEXT,
+                annual_budget DECIMAL(10,2),
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        console.log('✅ Cost management schema added successfully');
         console.log('✅ Database tables initialized');
     } catch (err) {
         console.error('Error initializing database:', err.message);
