@@ -90,12 +90,8 @@ export interface User {
   username: string;
   fullName: string;
   email: string;
-  role: 'admin' | 'user' | 'finance_manager' | 'finance_viewer';
+  role: 'admin' | 'user';
   department?: string;
-  permissions?: {
-    canViewCost?: boolean;
-    canEditCost?: boolean;
-  };
   createdAt?: string;
   lastLogin?: string;
 }

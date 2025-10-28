@@ -631,30 +631,15 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
-// Finance or Admin access middleware (View Access)
-const canViewCost = (req, res, next) => {
-    const allowedRoles = ['admin', 'finance', 'finance_manager', 'finance_viewer'];
-    if (!allowedRoles.includes(req.user.role)) {
+// Cost Management access middleware (Admin only)
+const isAdminOnly = (req, res, next) => {
+    if (req.user.role !== 'admin') {
         return res.status(403).json({ 
-            error: 'Access denied. You do not have permission to view cost management data.' 
+            error: 'Access denied. Admin access required for Cost Management.' 
         });
     }
     next();
 };
-
-// Finance or Admin access middleware (Edit Access)
-const canEditCost = (req, res, next) => {
-    const allowedRoles = ['admin', 'finance', 'finance_manager'];
-    if (!allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({ 
-            error: 'Access denied. You do not have permission to edit cost management data.' 
-        });
-    }
-    next();
-};
-
-// Legacy middleware (for backwards compatibility)
-const isFinanceOrAdmin = canEditCost;
 
 // ============= AUTHENTICATION ENDPOINTS =============
 
@@ -1935,7 +1920,7 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
 // ============= MAINTENANCE COSTS =============
 
 // Get all maintenance costs (VIEW permission)
-app.get('/api/maintenance-costs', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/maintenance-costs', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT * FROM maintenance_costs 
@@ -1948,7 +1933,7 @@ app.get('/api/maintenance-costs', authenticateToken, canViewCost, async (req, re
 });
 
 // Get maintenance costs by asset (VIEW permission)
-app.get('/api/maintenance-costs/asset/:assetType/:assetId', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/maintenance-costs/asset/:assetType/:assetId', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const { assetType, assetId } = req.params;
         const result = await pool.query(
@@ -1962,7 +1947,7 @@ app.get('/api/maintenance-costs/asset/:assetType/:assetId', authenticateToken, c
 });
 
 // Add maintenance cost (EDIT permission required)
-app.post('/api/maintenance-costs', authenticateToken, canEditCost, async (req, res) => {
+app.post('/api/maintenance-costs', authenticateToken, isAdminOnly, async (req, res) => {
     const { id, asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department } = req.body;
     try {
         await pool.query(
@@ -1978,7 +1963,7 @@ app.post('/api/maintenance-costs', authenticateToken, canEditCost, async (req, r
 });
 
 // Update maintenance cost (EDIT permission required)
-app.put('/api/maintenance-costs/:id', authenticateToken, canEditCost, async (req, res) => {
+app.put('/api/maintenance-costs/:id', authenticateToken, isAdminOnly, async (req, res) => {
     const { asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department } = req.body;
     try {
         const result = await pool.query(
@@ -1995,7 +1980,7 @@ app.put('/api/maintenance-costs/:id', authenticateToken, canEditCost, async (req
 });
 
 // Delete maintenance cost (EDIT permission required)
-app.delete('/api/maintenance-costs/:id', authenticateToken, canEditCost, async (req, res) => {
+app.delete('/api/maintenance-costs/:id', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM maintenance_costs WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -2007,7 +1992,7 @@ app.delete('/api/maintenance-costs/:id', authenticateToken, canEditCost, async (
 // ============= BUDGETS =============
 
 // Get all budgets (VIEW permission)
-app.get('/api/budgets', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/budgets', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const { year, department } = req.query;
         let query = 'SELECT * FROM budgets WHERE 1=1';
@@ -2035,7 +2020,7 @@ app.get('/api/budgets', authenticateToken, canViewCost, async (req, res) => {
 });
 
 // Create or update budget (EDIT permission required)
-app.post('/api/budgets', authenticateToken, canEditCost, async (req, res) => {
+app.post('/api/budgets', authenticateToken, isAdminOnly, async (req, res) => {
     const { id, department, year, quarter, category, allocated_amount, spent_amount, notes } = req.body;
     try {
         await pool.query(
@@ -2052,7 +2037,7 @@ app.post('/api/budgets', authenticateToken, canEditCost, async (req, res) => {
 });
 
 // Update budget (EDIT permission required)
-app.put('/api/budgets/:id', authenticateToken, canEditCost, async (req, res) => {
+app.put('/api/budgets/:id', authenticateToken, isAdminOnly, async (req, res) => {
     const { allocated_amount, spent_amount, notes } = req.body;
     try {
         const result = await pool.query(
@@ -2068,7 +2053,7 @@ app.put('/api/budgets/:id', authenticateToken, canEditCost, async (req, res) => 
 });
 
 // Delete budget
-app.delete('/api/budgets/:id', authenticateToken, canEditCost, async (req, res) => {
+app.delete('/api/budgets/:id', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM budgets WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -2080,7 +2065,7 @@ app.delete('/api/budgets/:id', authenticateToken, canEditCost, async (req, res) 
 // ============= COST CENTERS =============
 
 // Get all cost centers
-app.get('/api/cost-centers', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/cost-centers', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM cost_centers ORDER BY department');
         res.json(result.rows);
@@ -2090,7 +2075,7 @@ app.get('/api/cost-centers', authenticateToken, canViewCost, async (req, res) =>
 });
 
 // Create cost center
-app.post('/api/cost-centers', authenticateToken, canEditCost, async (req, res) => {
+app.post('/api/cost-centers', authenticateToken, isAdminOnly, async (req, res) => {
     const { id, department, cost_center_code, manager_name, annual_budget, notes } = req.body;
     try {
         await pool.query(
@@ -2104,7 +2089,7 @@ app.post('/api/cost-centers', authenticateToken, canEditCost, async (req, res) =
 });
 
 // Update cost center
-app.put('/api/cost-centers/:id', authenticateToken, canEditCost, async (req, res) => {
+app.put('/api/cost-centers/:id', authenticateToken, isAdminOnly, async (req, res) => {
     const { cost_center_code, manager_name, annual_budget, notes } = req.body;
     try {
         const result = await pool.query(
@@ -2118,7 +2103,7 @@ app.put('/api/cost-centers/:id', authenticateToken, canEditCost, async (req, res
 });
 
 // Delete cost center
-app.delete('/api/cost-centers/:id', authenticateToken, canEditCost, async (req, res) => {
+app.delete('/api/cost-centers/:id', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM cost_centers WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -2130,7 +2115,7 @@ app.delete('/api/cost-centers/:id', authenticateToken, canEditCost, async (req, 
 // ============= FINANCIAL REPORTS & ANALYTICS =============
 
 // Get financial summary
-app.get('/api/financial/summary', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/financial/summary', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         // Total asset value
         const assetsQuery = await pool.query(`
@@ -2182,7 +2167,7 @@ app.get('/api/financial/summary', authenticateToken, canViewCost, async (req, re
 });
 
 // Get cost by department
-app.get('/api/financial/cost-by-department', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/financial/cost-by-department', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
@@ -2206,7 +2191,7 @@ app.get('/api/financial/cost-by-department', authenticateToken, canViewCost, asy
 });
 
 // Get depreciation report
-app.get('/api/financial/depreciation', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/financial/depreciation', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const calculateDepreciation = (purchaseCost, purchaseDate, depreciationYears) => {
             if (!purchaseCost || !purchaseDate || !depreciationYears) return null;
@@ -2250,7 +2235,7 @@ app.get('/api/financial/depreciation', authenticateToken, canViewCost, async (re
 });
 
 // Get TCO (Total Cost of Ownership) analysis
-app.get('/api/financial/tco', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/financial/tco', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const { assetType, assetId } = req.query;
         
@@ -2329,7 +2314,7 @@ app.get('/api/financial/tco', authenticateToken, canViewCost, async (req, res) =
 });
 
 // Get monthly spending trend
-app.get('/api/financial/monthly-trend', authenticateToken, canViewCost, async (req, res) => {
+app.get('/api/financial/monthly-trend', authenticateToken, isAdminOnly, async (req, res) => {
     try {
         const { months = 12 } = req.query;
         
