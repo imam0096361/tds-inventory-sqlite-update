@@ -298,6 +298,46 @@ export const AIAssistant: React.FC = () => {
             {/* Results */}
             {response && response.success && (
                 <div className="space-y-6">
+                    {/* Fuzzy Search Corrections */}
+                    {response.fuzzyCorrections && response.fuzzyCorrections.length > 0 && (
+                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl shadow-lg p-6 animate-fadeIn">
+                            <h3 className="text-xl font-bold text-purple-800 flex items-center gap-2 mb-4">
+                                <span>🎯</span> Auto-Corrected Typos
+                            </h3>
+                            <div className="space-y-3">
+                                {response.fuzzyCorrections.map((correction, idx) => (
+                                    <div 
+                                        key={idx}
+                                        className="p-4 bg-white rounded-lg border-l-4 border-purple-500"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl">✨</span>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-gray-600">
+                                                    <span className="font-semibold capitalize">{correction.field}:</span>
+                                                </p>
+                                                <p className="font-semibold text-gray-900 mt-1">
+                                                    <span className="line-through text-red-600">{correction.original}</span>
+                                                    {' → '}
+                                                    <span className="text-green-600">{correction.corrected}</span>
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Confidence: {correction.confidence}% match
+                                                </p>
+                                            </div>
+                                            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
+                                                CORRECTED
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-xs text-purple-700 mt-4 italic">
+                                💡 The AI automatically fixed typos to find the best matches!
+                            </p>
+                        </div>
+                    )}
+
                     {/* AI Insights */}
                     {response.insights && response.insights.length > 0 && (
                         <div className="bg-white rounded-xl shadow-lg p-6 animate-fadeIn">

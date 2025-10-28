@@ -1446,7 +1446,113 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
 
         // Parse AI response
         const parsedResponse = JSON.parse(aiResponse);
-        const { module, filters, interpretation } = parsedResponse;
+        let { module, filters, interpretation } = parsedResponse;
+
+        // ==================== FUZZY SEARCH INTEGRATION ====================
+        // Apply fuzzy matching to correct typos in username filters
+        const fuzzyCorrections = [];
+        
+        if (filters && filters.username) {
+            try {
+                // Fetch all unique usernames from database
+                const usernamesQuery = await pool.query(`
+                    SELECT DISTINCT username FROM (
+                        SELECT username FROM pcs WHERE username IS NOT NULL
+                        UNION
+                        SELECT username FROM laptops WHERE username IS NOT NULL
+                        UNION
+                        SELECT "pcUsername" as username FROM "mouseLogs" WHERE "pcUsername" IS NOT NULL
+                        UNION
+                        SELECT "pcUsername" as username FROM "keyboardLogs" WHERE "pcUsername" IS NOT NULL
+                        UNION
+                        SELECT "pcUsername" as username FROM "ssdLogs" WHERE "pcUsername" IS NOT NULL
+                        UNION
+                        SELECT "pcUsername" as username FROM "headphoneLogs" WHERE "pcUsername" IS NOT NULL
+                        UNION
+                        SELECT "pcUsername" as username FROM "portableHDDLogs" WHERE "pcUsername" IS NOT NULL
+                    ) AS all_usernames
+                `);
+                
+                const allUsernames = usernamesQuery.rows.map(row => row.username);
+                const inputUsername = filters.username.value;
+                
+                // Check if it's an exact match (case-insensitive)
+                const exactMatch = allUsernames.find(u => 
+                    u.toLowerCase() === inputUsername.toLowerCase()
+                );
+                
+                if (!exactMatch && allUsernames.length > 0) {
+                    // No exact match, try fuzzy matching
+                    console.log(`🔍 Fuzzy search: Looking for match for "${inputUsername}"`);
+                    const fuzzyResult = findBestMatch(inputUsername, allUsernames);
+                    
+                    if (fuzzyResult.match && fuzzyResult.confidence >= 60) {
+                        // Found a good match!
+                        console.log(`✅ Fuzzy match found: "${inputUsername}" → "${fuzzyResult.match}" (${fuzzyResult.confidence}% confidence)`);
+                        
+                        // Correct the filter
+                        filters.username.value = fuzzyResult.match;
+                        
+                        // Track the correction
+                        fuzzyCorrections.push({
+                            field: 'username',
+                            original: inputUsername,
+                            corrected: fuzzyResult.match,
+                            confidence: fuzzyResult.confidence
+                        });
+                        
+                        // Update interpretation to mention the correction
+                        interpretation += ` (corrected "${inputUsername}" to "${fuzzyResult.match}")`;
+                    } else {
+                        console.log(`⚠️ No fuzzy match found for "${inputUsername}" (confidence: ${fuzzyResult.confidence}%)`);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Fuzzy search error:', error);
+                // Continue with original username if fuzzy search fails
+            }
+        }
+        
+        // Also check department names for fuzzy matching
+        if (filters && filters.department) {
+            try {
+                const deptsQuery = await pool.query(`
+                    SELECT DISTINCT department FROM (
+                        SELECT department FROM pcs WHERE department IS NOT NULL
+                        UNION
+                        SELECT department FROM laptops WHERE department IS NOT NULL
+                        UNION
+                        SELECT department FROM servers WHERE department IS NOT NULL
+                    ) AS all_depts
+                `);
+                
+                const allDepts = deptsQuery.rows.map(row => row.department);
+                const inputDept = filters.department.value;
+                
+                const exactMatch = allDepts.find(d => 
+                    d.toLowerCase() === inputDept.toLowerCase()
+                );
+                
+                if (!exactMatch && allDepts.length > 0) {
+                    const fuzzyResult = findBestMatch(inputDept, allDepts);
+                    
+                    if (fuzzyResult.match && fuzzyResult.confidence >= 60) {
+                        console.log(`✅ Fuzzy match found: "${inputDept}" → "${fuzzyResult.match}" (${fuzzyResult.confidence}% confidence)`);
+                        filters.department.value = fuzzyResult.match;
+                        fuzzyCorrections.push({
+                            field: 'department',
+                            original: inputDept,
+                            corrected: fuzzyResult.match,
+                            confidence: fuzzyResult.confidence
+                        });
+                        interpretation += ` (corrected "${inputDept}" to "${fuzzyResult.match}")`;
+                    }
+                }
+            } catch (error) {
+                console.error('Department fuzzy search error:', error);
+            }
+        }
 
         // Special handling for "all" module - search across ALL modules!
         if (module === 'all') {
@@ -1593,7 +1699,8 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
                     return acc;
                 }, {}),
                 insights: insights,
-                recommendations: recommendations
+                recommendations: recommendations,
+                fuzzyCorrections: fuzzyCorrections.length > 0 ? fuzzyCorrections : undefined
             });
         }
 
@@ -1682,7 +1789,8 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
             interpretation: interpretation,
             resultCount: dbResult.rows.length,
             insights: insights,
-            recommendations: recommendations
+            recommendations: recommendations,
+            fuzzyCorrections: fuzzyCorrections.length > 0 ? fuzzyCorrections : undefined
         });
 
     } catch (error) {
