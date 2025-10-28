@@ -150,9 +150,11 @@ const CostManagement: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('bn-BD', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'BDT',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount);
   };
 
@@ -681,7 +683,7 @@ const MaintenanceForm: React.FC<{
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-1">Cost ($)*</label>
+          <label className="block text-sm font-semibold mb-1">Cost (৳)*</label>
           <input
             type="number"
             step="0.01"
@@ -830,7 +832,7 @@ const BudgetForm: React.FC<{
           </select>
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-1">Allocated Amount ($)*</label>
+          <label className="block text-sm font-semibold mb-1">Allocated Amount (৳)*</label>
           <input
             type="number"
             step="0.01"
