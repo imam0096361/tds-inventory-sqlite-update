@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import type { FinancialSummary, DepartmentCost, DepreciationData, MaintenanceCost, Budget, MonthlyTrend } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 // Detect if we're on Vercel production or localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
 
 const CostManagement: React.FC = () => {
+  const { user } = useAuth();
+  
+  // Check if user can edit (admin, finance, finance_manager can edit)
+  const canEdit = user?.role === 'admin' || user?.role === 'finance' || user?.role === 'finance_manager';
+  // finance_viewer can only view
   const [activeTab, setActiveTab] = useState<'dashboard' | 'maintenance' | 'budgets' | 'depreciation'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -190,8 +196,16 @@ const CostManagement: React.FC = () => {
           <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
             <span className="text-5xl">💰</span>
             Cost Management
+            {!canEdit && (
+              <span className="text-sm bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-semibold">
+                👁️ View Only
+              </span>
+            )}
           </h1>
-          <p className="text-gray-600 mt-2">Financial tracking, budgets, and asset cost analysis</p>
+          <p className="text-gray-600 mt-2">
+            Financial tracking, budgets, and asset cost analysis
+            {!canEdit && <span className="text-yellow-600 font-semibold"> (Read-Only Access)</span>}
+          </p>
         </div>
       </div>
 
@@ -370,12 +384,14 @@ const CostManagement: React.FC = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Maintenance Cost Records</h2>
-            <button
-              onClick={() => setShowAddMaintenance(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
-            >
-              + Add Maintenance Cost
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setShowAddMaintenance(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+              >
+                + Add Maintenance Cost
+              </button>
+            )}
           </div>
 
           {showAddMaintenance && (
@@ -418,12 +434,16 @@ const CostManagement: React.FC = () => {
                           {formatCurrency(cost.cost)}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => handleDeleteMaintenance(cost.id)}
-                            className="text-red-600 hover:text-red-800 font-semibold"
-                          >
-                            🗑️ Delete
-                          </button>
+                          {canEdit ? (
+                            <button
+                              onClick={() => handleDeleteMaintenance(cost.id)}
+                              className="text-red-600 hover:text-red-800 font-semibold"
+                            >
+                              🗑️ Delete
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -440,12 +460,14 @@ const CostManagement: React.FC = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Budget Planning ({new Date().getFullYear()})</h2>
-            <button
-              onClick={() => setShowAddBudget(true)}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold"
-            >
-              + Add Budget
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setShowAddBudget(true)}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold"
+              >
+                + Add Budget
+              </button>
+            )}
           </div>
 
           {showAddBudget && (

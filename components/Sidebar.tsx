@@ -113,7 +113,13 @@ export const Sidebar: React.FC = () => {
     ],
   };
 
-  const allSections = user?.role === 'admin' || user?.role === 'finance' 
+  // Show Financial section for admin, finance, finance_manager, and finance_viewer
+  const canSeeCostManagement = user?.role === 'admin' || 
+                                user?.role === 'finance' || 
+                                user?.role === 'finance_manager' || 
+                                user?.role === 'finance_viewer';
+  
+  const allSections = canSeeCostManagement
     ? [...navSections, financialSection] 
     : navSections;
 
