@@ -59,7 +59,7 @@ function findBestMatch(input, options) {
 }
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 5000;
 
 // JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
