@@ -64,24 +64,29 @@ function findBestMatch(input, options) {
 const app = express();
 const port = process.env.PORT || 5000;
 
-// JWT Secret (in production, use environment variable)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// JWT Secret - REQUIRED (no fallback for security)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+    console.error('❌ FATAL ERROR: JWT_SECRET environment variable is required and must be at least 32 characters long!');
+    console.error('📝 Generate a strong secret with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    process.exit(1);
+}
 
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? ['https://tds-inventory-sqlite-update.vercel.app'] 
+    origin: process.env.NODE_ENV === 'production'
+        ? ['https://tds-inventory-sqlite-update.vercel.app']
         : ['http://localhost:5173'],
     credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Prevent large payload attacks
 app.use(cookieParser());
 
 // PostgreSQL connection pool
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: true }  // Strict SSL in production - secure!
+        : { rejectUnauthorized: false }  // Allow dev certs only in development
 });
 
 // Test database connection
@@ -392,7 +397,7 @@ initDatabase();
 // ============= AUTHENTICATION MIDDLEWARE =============
 const authenticateToken = (req, res, next) => {
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
         return res.status(401).json({ error: 'Authentication required' });
     }
@@ -405,6 +410,87 @@ const authenticateToken = (req, res, next) => {
         return res.status(403).json({ error: 'Invalid or expired token' });
     }
 };
+
+// ============= INPUT VALIDATION HELPERS =============
+const validateRequired = (fields, data) => {
+    const missing = [];
+    for (const field of fields) {
+        if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
+            missing.push(field);
+        }
+    }
+    return missing;
+};
+
+const validateLength = (field, value, max) => {
+    if (value && value.length > max) {
+        return `${field} must be less than ${max} characters`;
+    }
+    return null;
+};
+
+const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    // Remove potentially dangerous characters and trim
+    return str.trim().substring(0, 500); // Max 500 chars
+};
+
+const validateInput = (req, res, next) => {
+    // Sanitize all string inputs in body
+    if (req.body && typeof req.body === 'object') {
+        for (const key in req.body) {
+            if (typeof req.body[key] === 'string') {
+                req.body[key] = sanitizeString(req.body[key]);
+            }
+        }
+    }
+    next();
+};
+
+// ============= RATE LIMITING =============
+const loginAttempts = new Map(); // Store login attempts: IP -> { count, resetTime }
+
+const rateLimitLogin = (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+    const maxAttempts = 5; // 5 attempts per window
+
+    if (!loginAttempts.has(ip)) {
+        loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
+        return next();
+    }
+
+    const attempt = loginAttempts.get(ip);
+
+    // Reset if window has expired
+    if (now > attempt.resetTime) {
+        loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
+        return next();
+    }
+
+    // Check if limit exceeded
+    if (attempt.count >= maxAttempts) {
+        const remainingTime = Math.ceil((attempt.resetTime - now) / 1000 / 60);
+        return res.status(429).json({
+            error: `Too many login attempts. Please try again in ${remainingTime} minutes.`
+        });
+    }
+
+    // Increment attempt count
+    attempt.count++;
+    return next();
+};
+
+// Clean up old entries every hour
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, attempt] of loginAttempts.entries()) {
+        if (now > attempt.resetTime) {
+            loginAttempts.delete(ip);
+        }
+    }
+}, 60 * 60 * 1000);
 
 // ==================== AI INSIGHTS GENERATION ====================
 async function generateInsights(data, module, filters) {
@@ -644,7 +730,7 @@ const isAdminOnly = (req, res, next) => {
 // ============= AUTHENTICATION ENDPOINTS =============
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', rateLimitLogin, async (req, res) => {
     const { username, password } = req.body;
     
     try {
@@ -725,9 +811,36 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Register new user (admin only)
-app.post('/api/auth/register', authenticateToken, isAdmin, async (req, res) => {
+app.post('/api/auth/register', authenticateToken, isAdmin, validateInput, async (req, res) => {
     const { username, password, fullName, email, role, department } = req.body;
-    
+
+    // Validate required fields
+    const missing = validateRequired(['username', 'password', 'fullName', 'email'], req.body);
+    if (missing.length > 0) {
+        return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate password strength (min 8 chars)
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    // Validate username (alphanumeric, 3-50 chars)
+    if (username.length < 3 || username.length > 50) {
+        return res.status(400).json({ error: 'Username must be between 3 and 50 characters' });
+    }
+
+    // Validate role if provided
+    if (role && !['admin', 'user'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Must be "admin" or "user"' });
+    }
+
     try {
         // Check if user already exists
         const existingUser = await pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [username, email]);
@@ -745,7 +858,8 @@ app.post('/api/auth/register', authenticateToken, isAdmin, async (req, res) => {
 
         res.json({ message: 'User created successfully', userId: id });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('User registration error:', err);
+        res.status(500).json({ error: 'Failed to create user' });
     }
 });
 
@@ -815,7 +929,7 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
 });
 
 // ============= PC ENDPOINTS =============
-app.get('/api/pcs', async (req, res) => {
+app.get('/api/pcs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM pcs');
         res.json(result.rows);
@@ -824,8 +938,27 @@ app.get('/api/pcs', async (req, res) => {
     }
 });
 
-app.post('/api/pcs', async (req, res) => {
+app.post('/api/pcs', authenticateToken, validateInput, async (req, res) => {
     const { id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
+
+    // Validate required fields
+    const missing = validateRequired(['id', 'department', 'pcName'], req.body);
+    if (missing.length > 0) {
+        return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+    }
+
+    // Validate field lengths
+    const lengthErrors = [
+        validateLength('id', id, 100),
+        validateLength('department', department, 100),
+        validateLength('pcName', pcName, 100),
+        validateLength('username', username, 100)
+    ].filter(Boolean);
+
+    if (lengthErrors.length > 0) {
+        return res.status(400).json({ error: lengthErrors[0] });
+    }
+
     try {
         await pool.query(
             'INSERT INTO pcs (id, department, ip, "pcName", username, motherboard, cpu, ram, storage, monitor, os, status, floor, "customFields") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
@@ -833,11 +966,12 @@ app.post('/api/pcs', async (req, res) => {
         );
         res.json({ id });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Database error:', err);
+        res.status(500).json({ error: 'Failed to create PC record' });
     }
 });
 
-app.put('/api/pcs/:id', async (req, res) => {
+app.put('/api/pcs/:id', authenticateToken, async (req, res) => {
     const { department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
     try {
         const result = await pool.query(
@@ -850,7 +984,7 @@ app.put('/api/pcs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/pcs/:id', async (req, res) => {
+app.delete('/api/pcs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM pcs WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -860,7 +994,7 @@ app.delete('/api/pcs/:id', async (req, res) => {
 });
 
 // ============= LAPTOP ENDPOINTS =============
-app.get('/api/laptops', async (req, res) => {
+app.get('/api/laptops', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM laptops');
         res.json(result.rows);
@@ -869,7 +1003,7 @@ app.get('/api/laptops', async (req, res) => {
     }
 });
 
-app.post('/api/laptops', async (req, res) => {
+app.post('/api/laptops', authenticateToken, async (req, res) => {
     const { id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
     try {
         await pool.query(
@@ -882,7 +1016,7 @@ app.post('/api/laptops', async (req, res) => {
     }
 });
 
-app.put('/api/laptops/:id', async (req, res) => {
+app.put('/api/laptops/:id', authenticateToken, async (req, res) => {
     const { pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
     try {
         const result = await pool.query(
@@ -895,7 +1029,7 @@ app.put('/api/laptops/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/laptops/:id', async (req, res) => {
+app.delete('/api/laptops/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM laptops WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -905,7 +1039,7 @@ app.delete('/api/laptops/:id', async (req, res) => {
 });
 
 // ============= SERVER ENDPOINTS =============
-app.get('/api/servers', async (req, res) => {
+app.get('/api/servers', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM servers');
         res.json(result.rows);
@@ -914,7 +1048,7 @@ app.get('/api/servers', async (req, res) => {
     }
 });
 
-app.post('/api/servers', async (req, res) => {
+app.post('/api/servers', authenticateToken, async (req, res) => {
     const { id, serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields } = req.body;
     try {
         await pool.query(
@@ -927,7 +1061,7 @@ app.post('/api/servers', async (req, res) => {
     }
 });
 
-app.put('/api/servers/:id', async (req, res) => {
+app.put('/api/servers/:id', authenticateToken, async (req, res) => {
     const { serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields } = req.body;
     try {
         const result = await pool.query(
@@ -940,7 +1074,7 @@ app.put('/api/servers/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/servers/:id', async (req, res) => {
+app.delete('/api/servers/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM servers WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -950,7 +1084,7 @@ app.delete('/api/servers/:id', async (req, res) => {
 });
 
 // ============= MOUSE LOG ENDPOINTS =============
-app.get('/api/mouselogs', async (req, res) => {
+app.get('/api/mouselogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "mouseLogs"');
         res.json(result.rows);
@@ -959,7 +1093,7 @@ app.get('/api/mouselogs', async (req, res) => {
     }
 });
 
-app.post('/api/mouselogs', async (req, res) => {
+app.post('/api/mouselogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -972,7 +1106,7 @@ app.post('/api/mouselogs', async (req, res) => {
     }
 });
 
-app.put('/api/mouselogs/:id', async (req, res) => {
+app.put('/api/mouselogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -985,7 +1119,7 @@ app.put('/api/mouselogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/mouselogs/:id', async (req, res) => {
+app.delete('/api/mouselogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "mouseLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -995,7 +1129,7 @@ app.delete('/api/mouselogs/:id', async (req, res) => {
 });
 
 // ============= KEYBOARD LOG ENDPOINTS =============
-app.get('/api/keyboardlogs', async (req, res) => {
+app.get('/api/keyboardlogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "keyboardLogs"');
         res.json(result.rows);
@@ -1004,7 +1138,7 @@ app.get('/api/keyboardlogs', async (req, res) => {
     }
 });
 
-app.post('/api/keyboardlogs', async (req, res) => {
+app.post('/api/keyboardlogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1017,7 +1151,7 @@ app.post('/api/keyboardlogs', async (req, res) => {
     }
 });
 
-app.put('/api/keyboardlogs/:id', async (req, res) => {
+app.put('/api/keyboardlogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1030,7 +1164,7 @@ app.put('/api/keyboardlogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/keyboardlogs/:id', async (req, res) => {
+app.delete('/api/keyboardlogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "keyboardLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -1040,7 +1174,7 @@ app.delete('/api/keyboardlogs/:id', async (req, res) => {
 });
 
 // ============= SSD LOG ENDPOINTS =============
-app.get('/api/ssdlogs', async (req, res) => {
+app.get('/api/ssdlogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "ssdLogs"');
         res.json(result.rows);
@@ -1049,7 +1183,7 @@ app.get('/api/ssdlogs', async (req, res) => {
     }
 });
 
-app.post('/api/ssdlogs', async (req, res) => {
+app.post('/api/ssdlogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1062,7 +1196,7 @@ app.post('/api/ssdlogs', async (req, res) => {
     }
 });
 
-app.put('/api/ssdlogs/:id', async (req, res) => {
+app.put('/api/ssdlogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1075,7 +1209,7 @@ app.put('/api/ssdlogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/ssdlogs/:id', async (req, res) => {
+app.delete('/api/ssdlogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "ssdLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -1085,7 +1219,7 @@ app.delete('/api/ssdlogs/:id', async (req, res) => {
 });
 
 // ============= HEADPHONE LOG ENDPOINTS =============
-app.get('/api/headphonelogs', async (req, res) => {
+app.get('/api/headphonelogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "headphoneLogs"');
         res.json(result.rows);
@@ -1094,7 +1228,7 @@ app.get('/api/headphonelogs', async (req, res) => {
     }
 });
 
-app.post('/api/headphonelogs', async (req, res) => {
+app.post('/api/headphonelogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1107,7 +1241,7 @@ app.post('/api/headphonelogs', async (req, res) => {
     }
 });
 
-app.put('/api/headphonelogs/:id', async (req, res) => {
+app.put('/api/headphonelogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1120,7 +1254,7 @@ app.put('/api/headphonelogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/headphonelogs/:id', async (req, res) => {
+app.delete('/api/headphonelogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "headphoneLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -1130,7 +1264,7 @@ app.delete('/api/headphonelogs/:id', async (req, res) => {
 });
 
 // ============= PORTABLE HDD LOG ENDPOINTS =============
-app.get('/api/portablehddlogs', async (req, res) => {
+app.get('/api/portablehddlogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "portableHDDLogs"');
         res.json(result.rows);
@@ -1139,7 +1273,7 @@ app.get('/api/portablehddlogs', async (req, res) => {
     }
 });
 
-app.post('/api/portablehddlogs', async (req, res) => {
+app.post('/api/portablehddlogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1152,7 +1286,7 @@ app.post('/api/portablehddlogs', async (req, res) => {
     }
 });
 
-app.put('/api/portablehddlogs/:id', async (req, res) => {
+app.put('/api/portablehddlogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1165,7 +1299,7 @@ app.put('/api/portablehddlogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/portablehddlogs/:id', async (req, res) => {
+app.delete('/api/portablehddlogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "portableHDDLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
