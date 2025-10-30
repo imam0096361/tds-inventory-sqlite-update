@@ -71,10 +71,20 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   };
 
   const url = buildApiUrl(endpoint);
+  
+  // Debug logging (remove in production)
+  if (options.method === 'POST' || options.method === 'PUT') {
+    console.log('[apiFetch]', options.method, endpoint, {
+      hasToken: !!token,
+      body: options.body
+    });
+  }
+  
   const response = await fetch(url, mergedOptions);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    console.error('[apiFetch] Error:', endpoint, error);
     throw new Error(error.error || error.message || `HTTP ${response.status}`);
   }
 
