@@ -12,6 +12,7 @@ import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { cachedFetch, CACHE_CONFIG, invalidateCache } from '../utils/cache';
 import { buildApiUrl, apiFetch } from '../utils/api';
+import { generateUUID } from '../utils/uuid';
 
 const emptyFormState: Omit<LaptopInfoEntry, 'id'> = {
     pcName: '',
@@ -114,7 +115,7 @@ export const LaptopInfo: React.FC = () => {
             });
             setLaptops(laptops.map(laptop => (laptop.id === editingLaptop.id ? { ...formData, id: editingLaptop.id } : laptop)));
         } else {
-            const newLaptop = { ...formData, id: crypto.randomUUID() };
+            const newLaptop = { ...formData, id: generateUUID() };
             await apiFetch('/api/laptops', {
                 method: 'POST',
                 body: JSON.stringify(newLaptop),
@@ -188,7 +189,7 @@ export const LaptopInfo: React.FC = () => {
                 return {
                     ...emptyFormState,
                     ...laptop,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     hardwareStatus
                 };
             });

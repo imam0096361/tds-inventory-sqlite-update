@@ -6,6 +6,7 @@ import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { buildApiUrl, apiFetch } from '../utils/api';
+import { generateUUID } from '../utils/uuid';
 
 type Category = 'Mouse' | 'Keyboard' | 'SSD' | 'Headphone' | 'Portable HDD';
 
@@ -144,7 +145,7 @@ export const ProductInventory: React.FC = () => {
         const serials = stockFormData.serialNumbers.split('\n').map(s => s.trim()).filter(Boolean);
 
         const newEntries: PeripheralLogEntry[] = serials.map((serial, index) => ({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             productName: stockFormData.productName,
             serialNumber: serial,
             pcName: '',
@@ -229,7 +230,7 @@ export const ProductInventory: React.FC = () => {
                 }
 
                 const newEntry: PeripheralLogEntry = {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     productName: item.productName.trim(),
                     serialNumber: item.serialNumber.trim(),
                     pcName: '',

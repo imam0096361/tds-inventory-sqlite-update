@@ -11,6 +11,7 @@ import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { buildApiUrl, apiFetch } from '../utils/api';
+import { generateUUID } from '../utils/uuid';
 
 const emptyFormState: Omit<ServerInfoEntry, 'id'> = {
     serverID: '',
@@ -92,7 +93,7 @@ export const ServerInfo: React.FC = () => {
             });
             setServers(servers.map(server => (server.id === editingServer.id ? { ...formData, id: editingServer.id } : server)));
         } else {
-            const newServer = { ...formData, id: crypto.randomUUID() };
+            const newServer = { ...formData, id: generateUUID() };
             await apiFetch('/api/servers', {
                 method: 'POST',
                 body: JSON.stringify(newServer),
@@ -169,7 +170,7 @@ export const ServerInfo: React.FC = () => {
                 return {
                     ...emptyFormState,
                     ...server,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     totalCores: server.totalCores ? Number(server.totalCores) : 0,
                     status
                 };

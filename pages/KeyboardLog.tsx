@@ -10,6 +10,7 @@ import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { ImportModal } from '../components/ImportModal';
 import { buildApiUrl, apiFetch } from '../utils/api';
+import { generateUUID } from '../utils/uuid';
 
 const emptyFormState: Omit<PeripheralLogEntry, 'id'> = {
     productName: '',
@@ -88,7 +89,7 @@ export const KeyboardLog: React.FC = () => {
             });
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
-            const newLog = { ...formData, id: crypto.randomUUID() };
+            const newLog = { ...formData, id: generateUUID() };
             await apiFetch('/api/keyboardlogs', {
                 method: 'POST',
                 body: JSON.stringify(newLog),
@@ -169,7 +170,7 @@ export const KeyboardLog: React.FC = () => {
     const handleImportLogs = async (newLogs: Partial<PeripheralLogEntry>[]) => {
         const logsToAdd = newLogs.map(log => ({
             ...log,
-            id: crypto.randomUUID()
+            id: generateUUID()
         }));
 
         const addPromises = logsToAdd.map(log => apiFetch('/api/keyboardlogs', {

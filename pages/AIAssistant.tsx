@@ -5,6 +5,7 @@ import { exportToPDF } from '../utils/advancedExport';
 import { useAuth } from '../contexts/AuthContext';
 import { useAISuggestions } from '../hooks/useAISuggestions';
 import { buildApiUrl, apiFetch } from '../utils/api';
+import { generateUUID } from '../utils/uuid';
 
 export const AIAssistant: React.FC = () => {
     const { token } = useAuth();
@@ -48,7 +49,7 @@ export const AIAssistant: React.FC = () => {
 
             // Save to history
             const newHistoryItem: AIQueryHistory = {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 query: query.trim(),
                 timestamp: new Date().toISOString(),
                 resultCount: data.resultCount || 0,

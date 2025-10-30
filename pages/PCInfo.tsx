@@ -12,6 +12,7 @@ import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { cachedFetch, CACHE_CONFIG, invalidateCache } from '../utils/cache';
 import { buildApiUrl, apiFetch } from '../utils/api';
+import { generateUUID } from '../utils/uuid';
 
 const emptyFormState: Omit<PCInfoEntry, 'id'> = {
     department: '',
@@ -130,7 +131,7 @@ export const PCInfo: React.FC = () => {
             });
             setPcs(pcs.map(pc => (pc.id === editingPC.id ? { ...formData, id: editingPC.id } : pc)));
         } else {
-            const newPC = { ...formData, id: crypto.randomUUID() };
+            const newPC = { ...formData, id: generateUUID() };
             await apiFetch('/api/pcs', {
                 method: 'POST',
                 body: JSON.stringify(newPC),
@@ -258,7 +259,7 @@ export const PCInfo: React.FC = () => {
                 return {
                     ...emptyFormState,
                     ...pc,
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     floor,
                     status,
                 };
