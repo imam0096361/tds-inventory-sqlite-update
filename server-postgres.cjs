@@ -64,8 +64,13 @@ function findBestMatch(input, options) {
 const app = express();
 const port = process.env.PORT || 5000;
 
-// JWT Secret (in production, use environment variable)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// JWT Secret - REQUIRED (no fallback for security)
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+    console.error('❌ FATAL ERROR: JWT_SECRET environment variable is required and must be at least 32 characters long!');
+    console.error('📝 Generate a strong secret with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    process.exit(1);
+}
 
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
