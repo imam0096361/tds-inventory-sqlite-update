@@ -4,7 +4,7 @@ import { exportToCSV } from '../utils/export';
 import { exportToPDF } from '../utils/advancedExport';
 import { useAuth } from '../contexts/AuthContext';
 import { useAISuggestions } from '../hooks/useAISuggestions';
-import { buildApiUrl } from '../utils/api';
+import { buildApiUrl, apiFetch } from '../utils/api';
 
 export const AIAssistant: React.FC = () => {
     const { token } = useAuth();
@@ -39,21 +39,10 @@ export const AIAssistant: React.FC = () => {
         setResponse(null);
 
         try {
-            const res = await fetch(buildApiUrl('/api/ai-query'), {
+            const data = await apiFetch('/api/ai-query', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                credentials: 'include',
                 body: JSON.stringify({ query: query.trim() })
             });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to process query');
-            }
 
             setResponse(data);
 

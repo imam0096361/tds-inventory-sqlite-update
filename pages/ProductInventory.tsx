@@ -5,7 +5,7 @@ import { BoxIcon, ImportIcon } from '../components/Icons';
 import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
-import { buildApiUrl } from '../utils/api';
+import { buildApiUrl, apiFetch } from '../utils/api';
 
 type Category = 'Mouse' | 'Keyboard' | 'SSD' | 'Headphone' | 'Portable HDD';
 
@@ -47,20 +47,12 @@ export const ProductInventory: React.FC = () => {
     useEffect(() => {
         const fetchAllLogs = async () => {
             try {
-                const [mouseRes, keyboardRes, ssdRes, headphoneRes, hddRes] = await Promise.all([
-                    fetch(buildApiUrl('/api/mouselogs')),
-                    fetch(buildApiUrl('/api/keyboardlogs')),
-                    fetch(buildApiUrl('/api/ssdlogs')),
-                    fetch(buildApiUrl('/api/headphonelogs')),
-                    fetch(buildApiUrl('/api/portablehddlogs'))
-                ]);
-
                 const [mouseData, keyboardData, ssdData, headphoneData, hddData] = await Promise.all([
-                    mouseRes.json(),
-                    keyboardRes.json(),
-                    ssdRes.json(),
-                    headphoneRes.json(),
-                    hddRes.json()
+                    apiFetch('/api/mouselogs'),
+                    apiFetch('/api/keyboardlogs'),
+                    apiFetch('/api/ssdlogs'),
+                    apiFetch('/api/headphonelogs'),
+                    apiFetch('/api/portablehddlogs')
                 ]);
 
                 setMouseLogs(mouseData);
@@ -186,9 +178,8 @@ export const ProductInventory: React.FC = () => {
 
             // Add each entry via API
             for (const entry of newEntries) {
-                await fetch(apiEndpoint, {
+                await apiFetch(apiEndpoint, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(entry),
                 });
             }

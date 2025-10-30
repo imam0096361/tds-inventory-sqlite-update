@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import { buildApiUrl } from '../utils/api';
+import { buildApiUrl, apiFetch } from '../utils/api';
 
 interface User {
     id: string;
@@ -38,16 +38,8 @@ export default function UserManagement() {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch(buildApiUrl('/api/users'), {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                credentials: 'include'
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setUsers(data);
-            }
+            const data = await apiFetch('/api/users');
+            setUsers(data);
         } catch (err) {
             console.error('Failed to fetch users:', err);
         } finally {
@@ -94,13 +86,8 @@ export default function UserManagement() {
         try {
             if (editingUser) {
                 // Update existing user
-                const response = await fetch(buildApiUrl(`/api/users/${editingUser.id}`), {
+                await apiFetch(`/api/users/${editingUser.id}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: 'include',
                     body: JSON.stringify({
                         fullName: formData.fullName,
                         email: formData.email,
@@ -108,20 +95,10 @@ export default function UserManagement() {
                         department: formData.department
                     })
                 });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Update failed');
-                }
             } else {
                 // Create new user
-                const response = await fetch(buildApiUrl('/api/auth/register'), {
+                await apiFetch('/api/auth/register', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: 'include',
                     body: JSON.stringify({
                         username: formData.username,
                         password: formData.password,
@@ -131,11 +108,6 @@ export default function UserManagement() {
                         department: formData.department
                     })
                 });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Registration failed');
-                }
             }
 
             setIsModalOpen(false);
@@ -153,19 +125,9 @@ export default function UserManagement() {
         if (!userToDelete) return;
 
         try {
-            const response = await fetch(buildApiUrl(`/api/users/${userToDelete.id}`), {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                credentials: 'include'
+            await apiFetch(`/api/users/${userToDelete.id}`, {
+                method: 'DELETE'
             });
-
-            if (!response.ok) {
-                const error = await response.json();
-                alert(error.error || 'Delete failed');
-                return;
-            }
 
             setUsers(users.filter(u => u.id !== userToDelete.id));
             setUserToDelete(null);

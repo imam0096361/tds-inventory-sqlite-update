@@ -11,7 +11,7 @@ import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { cachedFetch, CACHE_CONFIG, invalidateCache } from '../utils/cache';
-import { buildApiUrl } from '../utils/api';
+import { buildApiUrl, apiFetch } from '../utils/api';
 
 const emptyFormState: Omit<PCInfoEntry, 'id'> = {
     department: '',
@@ -92,7 +92,7 @@ export const PCInfo: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!pcToDelete) return;
-        await fetch(`/api/pcs/${pcToDelete.id}`, { method: 'DELETE' });
+        await apiFetch(`/api/pcs/${pcToDelete.id}`, { method: 'DELETE' });
         setPcs(pcs.filter(pc => pc.id !== pcToDelete.id));
         setPcToDelete(null);
         // Invalidate cache so next visit gets fresh data
@@ -124,17 +124,15 @@ export const PCInfo: React.FC = () => {
             return;
         }
         if (editingPC) {
-            await fetch(`/api/pcs/${editingPC.id}`, {
+            await apiFetch(`/api/pcs/${editingPC.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
             setPcs(pcs.map(pc => (pc.id === editingPC.id ? { ...formData, id: editingPC.id } : pc)));
         } else {
             const newPC = { ...formData, id: crypto.randomUUID() };
-            await fetch(buildApiUrl('/api/pcs'), {
+            await apiFetch('/api/pcs', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newPC),
             });
             setPcs([...pcs, newPC]);

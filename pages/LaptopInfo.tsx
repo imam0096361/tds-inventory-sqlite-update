@@ -11,7 +11,7 @@ import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { cachedFetch, CACHE_CONFIG, invalidateCache } from '../utils/cache';
-import { buildApiUrl } from '../utils/api';
+import { buildApiUrl, apiFetch } from '../utils/api';
 
 const emptyFormState: Omit<LaptopInfoEntry, 'id'> = {
     pcName: '',
@@ -95,7 +95,7 @@ export const LaptopInfo: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!laptopToDelete) return;
-        await fetch(`/api/laptops/${laptopToDelete.id}`, { method: 'DELETE' });
+        await apiFetch(`/api/laptops/${laptopToDelete.id}`, { method: 'DELETE' });
         setLaptops(laptops.filter(laptop => laptop.id !== laptopToDelete.id));
         setLaptopToDelete(null);
         // Invalidate cache so next visit gets fresh data
@@ -108,17 +108,15 @@ export const LaptopInfo: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLaptop) {
-            await fetch(`/api/laptops/${editingLaptop.id}`, {
+            await apiFetch(`/api/laptops/${editingLaptop.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
             setLaptops(laptops.map(laptop => (laptop.id === editingLaptop.id ? { ...formData, id: editingLaptop.id } : laptop)));
         } else {
             const newLaptop = { ...formData, id: crypto.randomUUID() };
-            await fetch(buildApiUrl('/api/laptops'), {
+            await apiFetch('/api/laptops', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLaptop),
             });
             setLaptops([...laptops, newLaptop]);

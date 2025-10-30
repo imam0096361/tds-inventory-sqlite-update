@@ -3,7 +3,7 @@ import useLocalStorage from '../hooks/useLocalStorage';
 import { CustomFieldDef } from '../types';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { useAuth } from '../contexts/AuthContext';
-import { buildApiUrl } from '../utils/api';
+import { buildApiUrl, apiFetch } from '../utils/api';
 
 interface CustomFieldManagerProps {
   title: string;
@@ -138,24 +138,13 @@ const PasswordChangeSection: React.FC = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(buildApiUrl('/api/auth/change-password'), {
+            await apiFetch('/api/auth/change-password', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                credentials: 'include',
                 body: JSON.stringify({
                     currentPassword,
                     newPassword
                 })
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to change password');
-            }
 
             setSuccess('✅ Password changed successfully!');
             setCurrentPassword('');
