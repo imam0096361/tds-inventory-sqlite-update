@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { FinancialSummary, DepartmentCost, DepreciationData, MaintenanceCost, Budget, MonthlyTrend } from '../types';
-
-// Detect if we're on Vercel production or localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
+import { API_BASE_URL } from '../utils/api';
 
 const CostManagement: React.FC = () => {
   // Only admins can access this page, so full edit access for everyone here

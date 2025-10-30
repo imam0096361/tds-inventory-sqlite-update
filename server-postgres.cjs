@@ -74,19 +74,20 @@ if (!JWT_SECRET || JWT_SECRET.length < 32) {
 
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://tds-inventory-sqlite-update.vercel.app']
-        : ['http://localhost:5173'],
+        ? ['https://tds-inventory-sqlite-update.vercel.app', 'https://tds-inventory-sqlite-update-git-main.vercel.app']
+        : ['http://localhost:3000', 'http://localhost:5173'],
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Prevent large payload attacks
 app.use(cookieParser());
 
 // PostgreSQL connection pool
+// Note: Neon requires SSL but with rejectUnauthorized: false
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
-    ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: true }  // Strict SSL in production - secure!
-        : { rejectUnauthorized: false }  // Allow dev certs only in development
+    ssl: {
+        rejectUnauthorized: false  // Required for Neon and other managed PostgreSQL services
+    }
 });
 
 // Test database connection

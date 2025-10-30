@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { buildApiUrl } from '../utils/api';
 
 interface User {
     id: string;
@@ -36,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-            const response = await fetch('/api/auth/verify', {
+            const response = await fetch(buildApiUrl('/api/auth/verify'), {
                 headers: {
                     'Authorization': `Bearer ${storedToken}`
                 },
@@ -64,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const login = async (username: string, password: string) => {
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch(buildApiUrl('/api/auth/login'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
@@ -87,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const logout = async () => {
         try {
-            await fetch('/api/auth/logout', {
+            await fetch(buildApiUrl('/api/auth/logout'), {
                 method: 'POST',
                 credentials: 'include'
             });

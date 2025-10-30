@@ -5,6 +5,7 @@ import { BoxIcon, ImportIcon } from '../components/Icons';
 import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { buildApiUrl } from '../utils/api';
 
 type Category = 'Mouse' | 'Keyboard' | 'SSD' | 'Headphone' | 'Portable HDD';
 
@@ -47,11 +48,11 @@ export const ProductInventory: React.FC = () => {
         const fetchAllLogs = async () => {
             try {
                 const [mouseRes, keyboardRes, ssdRes, headphoneRes, hddRes] = await Promise.all([
-                    fetch('/api/mouselogs'),
-                    fetch('/api/keyboardlogs'),
-                    fetch('/api/ssdlogs'),
-                    fetch('/api/headphonelogs'),
-                    fetch('/api/portablehddlogs')
+                    fetch(buildApiUrl('/api/mouselogs')),
+                    fetch(buildApiUrl('/api/keyboardlogs')),
+                    fetch(buildApiUrl('/api/ssdlogs')),
+                    fetch(buildApiUrl('/api/headphonelogs')),
+                    fetch(buildApiUrl('/api/portablehddlogs'))
                 ]);
 
                 const [mouseData, keyboardData, ssdData, headphoneData, hddData] = await Promise.all([

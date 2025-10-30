@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Modal } from '../components/Modal';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { buildApiUrl } from '../utils/api';
 
 interface User {
     id: string;
@@ -37,7 +38,7 @@ export default function UserManagement() {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch('/api/users', {
+            const response = await fetch(buildApiUrl('/api/users'), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
@@ -93,7 +94,7 @@ export default function UserManagement() {
         try {
             if (editingUser) {
                 // Update existing user
-                const response = await fetch(`/api/users/${editingUser.id}`, {
+                const response = await fetch(buildApiUrl(`/api/users/${editingUser.id}`), {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -114,7 +115,7 @@ export default function UserManagement() {
                 }
             } else {
                 // Create new user
-                const response = await fetch('/api/auth/register', {
+                const response = await fetch(buildApiUrl('/api/auth/register'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -152,7 +153,7 @@ export default function UserManagement() {
         if (!userToDelete) return;
 
         try {
-            const response = await fetch(`/api/users/${userToDelete.id}`, {
+            const response = await fetch(buildApiUrl(`/api/users/${userToDelete.id}`), {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

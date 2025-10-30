@@ -224,7 +224,11 @@ export async function cachedFetch<T>(
  * Fetch from API (helper)
  */
 async function fetchFromAPI<T>(url: string): Promise<T> {
-    const response = await fetch(url);
+    // Import dynamically to avoid circular dependencies
+    const { buildApiUrl } = await import('./api');
+    const fullUrl = buildApiUrl(url);
+    
+    const response = await fetch(fullUrl);
     
     if (!response.ok) {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);

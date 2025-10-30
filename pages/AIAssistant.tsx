@@ -4,6 +4,7 @@ import { exportToCSV } from '../utils/export';
 import { exportToPDF } from '../utils/advancedExport';
 import { useAuth } from '../contexts/AuthContext';
 import { useAISuggestions } from '../hooks/useAISuggestions';
+import { buildApiUrl } from '../utils/api';
 
 export const AIAssistant: React.FC = () => {
     const { token } = useAuth();
@@ -38,7 +39,7 @@ export const AIAssistant: React.FC = () => {
         setResponse(null);
 
         try {
-            const res = await fetch('/api/ai-query', {
+            const res = await fetch(buildApiUrl('/api/ai-query'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

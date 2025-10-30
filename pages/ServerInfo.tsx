@@ -10,6 +10,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { buildApiUrl } from '../utils/api';
 
 const emptyFormState: Omit<ServerInfoEntry, 'id'> = {
     serverID: '',
@@ -40,7 +41,7 @@ export const ServerInfo: React.FC = () => {
     const [viewingServer, setViewingServer] = useState<ServerInfoEntry | null>(null);
 
     useEffect(() => {
-        fetch('/api/servers')
+        fetch(buildApiUrl('/api/servers'))
             .then(res => res.json())
             .then(data => setServers(data));
     }, []);
@@ -75,7 +76,7 @@ export const ServerInfo: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!serverToDelete) return;
-        await fetch(`/api/servers/${serverToDelete.id}`, { method: 'DELETE' });
+        await fetch(buildApiUrl(`/api/servers/${serverToDelete.id}`), { method: 'DELETE' });
         setServers(servers.filter(server => server.id !== serverToDelete.id));
         setServerToDelete(null);
     };
@@ -86,7 +87,7 @@ export const ServerInfo: React.FC = () => {
 
     const handleSave = async () => {
         if (editingServer) {
-            await fetch(`/api/servers/${editingServer.id}`, {
+            await fetch(buildApiUrl(`/api/servers/${editingServer.id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -94,7 +95,7 @@ export const ServerInfo: React.FC = () => {
             setServers(servers.map(server => (server.id === editingServer.id ? { ...formData, id: editingServer.id } : server)));
         } else {
             const newServer = { ...formData, id: crypto.randomUUID() };
-            await fetch('/api/servers', {
+            await fetch(buildApiUrl('/api/servers'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newServer),
@@ -177,7 +178,7 @@ export const ServerInfo: React.FC = () => {
                 };
             });
 
-            const addPromises = newServers.map(server => fetch('/api/servers', {
+            const addPromises = newServers.map(server => fetch(buildApiUrl('/api/servers'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(server),

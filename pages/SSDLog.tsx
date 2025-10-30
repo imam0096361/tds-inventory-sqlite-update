@@ -9,6 +9,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { ImportModal } from '../components/ImportModal';
+import { buildApiUrl } from '../utils/api';
 
 const emptyFormState: Omit<PeripheralLogEntry, 'id'> = {
     productName: '',
@@ -36,7 +37,7 @@ export const SSDLog: React.FC = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     useEffect(() => {
-        fetch('/api/ssdlogs')
+        fetch(buildApiUrl('/api/ssdlogs'))
             .then(res => res.json())
             .then(data => setLogs(data));
     }, []);
@@ -71,7 +72,7 @@ export const SSDLog: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!logToDelete) return;
-        await fetch(`/api/ssdlogs/${logToDelete.id}`, { method: 'DELETE' });
+        await fetch(buildApiUrl(`/api/ssdlogs/${logToDelete.id}`), { method: 'DELETE' });
         setLogs(logs.filter(log => log.id !== logToDelete.id));
         setLogToDelete(null);
     };
@@ -82,7 +83,7 @@ export const SSDLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(`/api/ssdlogs/${editingLog.id}`, {
+            await fetch(buildApiUrl(`/api/ssdlogs/${editingLog.id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -90,7 +91,7 @@ export const SSDLog: React.FC = () => {
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
             const newLog = { ...formData, id: crypto.randomUUID() };
-            await fetch('/api/ssdlogs', {
+            await fetch(buildApiUrl('/api/ssdlogs'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLog),
@@ -180,7 +181,7 @@ export const SSDLog: React.FC = () => {
             id: crypto.randomUUID()
         }));
 
-        const addPromises = logsToAdd.map(log => fetch('/api/ssdlogs', {
+        const addPromises = logsToAdd.map(log => fetch(buildApiUrl('/api/ssdlogs'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(log),

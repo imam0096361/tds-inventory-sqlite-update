@@ -11,6 +11,7 @@ import { ImportModal } from '../components/ImportModal';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { cachedFetch, CACHE_CONFIG, invalidateCache } from '../utils/cache';
+import { buildApiUrl } from '../utils/api';
 
 const emptyFormState: Omit<LaptopInfoEntry, 'id'> = {
     pcName: '',
@@ -115,7 +116,7 @@ export const LaptopInfo: React.FC = () => {
             setLaptops(laptops.map(laptop => (laptop.id === editingLaptop.id ? { ...formData, id: editingLaptop.id } : laptop)));
         } else {
             const newLaptop = { ...formData, id: crypto.randomUUID() };
-            await fetch('/api/laptops', {
+            await fetch(buildApiUrl('/api/laptops'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLaptop),

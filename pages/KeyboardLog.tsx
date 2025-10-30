@@ -9,6 +9,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { ImportModal } from '../components/ImportModal';
+import { buildApiUrl } from '../utils/api';
 
 const emptyFormState: Omit<PeripheralLogEntry, 'id'> = {
     productName: '',
@@ -36,7 +37,7 @@ export const KeyboardLog: React.FC = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     useEffect(() => {
-        fetch('/api/keyboardlogs')
+        fetch(buildApiUrl('/api/keyboardlogs'))
             .then(res => res.json())
             .then(data => setLogs(data));
     }, []);
@@ -71,7 +72,7 @@ export const KeyboardLog: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!logToDelete) return;
-        await fetch(`/api/keyboardlogs/${logToDelete.id}`, { method: 'DELETE' });
+        await fetch(buildApiUrl(`/api/keyboardlogs/${logToDelete.id}`, { method: 'DELETE' });
         setLogs(logs.filter(log => log.id !== logToDelete.id));
         setLogToDelete(null);
     };
@@ -82,7 +83,7 @@ export const KeyboardLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(`/api/keyboardlogs/${editingLog.id}`, {
+            await fetch(buildApiUrl(`/api/keyboardlogs/${editingLog.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

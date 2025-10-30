@@ -9,6 +9,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { ImportModal } from '../components/ImportModal';
+import { buildApiUrl } from '../utils/api';
 
 const emptyFormState: Omit<PeripheralLogEntry, 'id'> = {
     productName: '',
@@ -36,7 +37,7 @@ export const HeadphoneLog: React.FC = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     useEffect(() => {
-        fetch('/api/headphonelogs')
+        fetch(buildApiUrl('/api/headphonelogs'))
             .then(res => res.json())
             .then(data => setLogs(data));
     }, []);
@@ -71,7 +72,7 @@ export const HeadphoneLog: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!logToDelete) return;
-        await fetch(`/api/headphonelogs/${logToDelete.id}`, { method: 'DELETE' });
+        await fetch(buildApiUrl(`/api/headphonelogs/${logToDelete.id}`, { method: 'DELETE' });
         setLogs(logs.filter(log => log.id !== logToDelete.id));
         setLogToDelete(null);
     };
@@ -82,7 +83,7 @@ export const HeadphoneLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(`/api/headphonelogs/${editingLog.id}`, {
+            await fetch(buildApiUrl(`/api/headphonelogs/${editingLog.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
