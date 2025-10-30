@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Frontend - React App served by Nginx
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tds-inventory-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - tds-network
+    depends_on:
+      - backend
+
+  # Backend - Node.js API Server
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: tds-inventory-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=http://localhost
+    env_file:
+      - .env
+    networks:
+      - tds-network
+    depends_on:
+      - postgres
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: tds-inventory-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-tds_inventory}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tds-network
+    ports:
+      - "5432:5432"
+
+networks:
+  tds-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+
