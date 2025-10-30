@@ -73,12 +73,12 @@ if (!JWT_SECRET || JWT_SECRET.length < 32) {
 }
 
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? ['https://tds-inventory-sqlite-update.vercel.app'] 
+    origin: process.env.NODE_ENV === 'production'
+        ? ['https://tds-inventory-sqlite-update.vercel.app']
         : ['http://localhost:5173'],
     credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Prevent large payload attacks
 app.use(cookieParser());
 
 // PostgreSQL connection pool
@@ -397,7 +397,7 @@ initDatabase();
 // ============= AUTHENTICATION MIDDLEWARE =============
 const authenticateToken = (req, res, next) => {
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
         return res.status(401).json({ error: 'Authentication required' });
     }
@@ -409,6 +409,42 @@ const authenticateToken = (req, res, next) => {
     } catch (err) {
         return res.status(403).json({ error: 'Invalid or expired token' });
     }
+};
+
+// ============= INPUT VALIDATION HELPERS =============
+const validateRequired = (fields, data) => {
+    const missing = [];
+    for (const field of fields) {
+        if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
+            missing.push(field);
+        }
+    }
+    return missing;
+};
+
+const validateLength = (field, value, max) => {
+    if (value && value.length > max) {
+        return `${field} must be less than ${max} characters`;
+    }
+    return null;
+};
+
+const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    // Remove potentially dangerous characters and trim
+    return str.trim().substring(0, 500); // Max 500 chars
+};
+
+const validateInput = (req, res, next) => {
+    // Sanitize all string inputs in body
+    if (req.body && typeof req.body === 'object') {
+        for (const key in req.body) {
+            if (typeof req.body[key] === 'string') {
+                req.body[key] = sanitizeString(req.body[key]);
+            }
+        }
+    }
+    next();
 };
 
 // ==================== AI INSIGHTS GENERATION ====================
@@ -730,9 +766,36 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Register new user (admin only)
-app.post('/api/auth/register', authenticateToken, isAdmin, async (req, res) => {
+app.post('/api/auth/register', authenticateToken, isAdmin, validateInput, async (req, res) => {
     const { username, password, fullName, email, role, department } = req.body;
-    
+
+    // Validate required fields
+    const missing = validateRequired(['username', 'password', 'fullName', 'email'], req.body);
+    if (missing.length > 0) {
+        return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate password strength (min 8 chars)
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    // Validate username (alphanumeric, 3-50 chars)
+    if (username.length < 3 || username.length > 50) {
+        return res.status(400).json({ error: 'Username must be between 3 and 50 characters' });
+    }
+
+    // Validate role if provided
+    if (role && !['admin', 'user'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Must be "admin" or "user"' });
+    }
+
     try {
         // Check if user already exists
         const existingUser = await pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [username, email]);
@@ -750,7 +813,8 @@ app.post('/api/auth/register', authenticateToken, isAdmin, async (req, res) => {
 
         res.json({ message: 'User created successfully', userId: id });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('User registration error:', err);
+        res.status(500).json({ error: 'Failed to create user' });
     }
 });
 
@@ -829,8 +893,27 @@ app.get('/api/pcs', authenticateToken, async (req, res) => {
     }
 });
 
-app.post('/api/pcs', authenticateToken, async (req, res) => {
+app.post('/api/pcs', authenticateToken, validateInput, async (req, res) => {
     const { id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
+
+    // Validate required fields
+    const missing = validateRequired(['id', 'department', 'pcName'], req.body);
+    if (missing.length > 0) {
+        return res.status(400).json({ error: `Missing required fields: ${missing.join(', ')}` });
+    }
+
+    // Validate field lengths
+    const lengthErrors = [
+        validateLength('id', id, 100),
+        validateLength('department', department, 100),
+        validateLength('pcName', pcName, 100),
+        validateLength('username', username, 100)
+    ].filter(Boolean);
+
+    if (lengthErrors.length > 0) {
+        return res.status(400).json({ error: lengthErrors[0] });
+    }
+
     try {
         await pool.query(
             'INSERT INTO pcs (id, department, ip, "pcName", username, motherboard, cpu, ram, storage, monitor, os, status, floor, "customFields") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
@@ -838,7 +921,8 @@ app.post('/api/pcs', authenticateToken, async (req, res) => {
         );
         res.json({ id });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Database error:', err);
+        res.status(500).json({ error: 'Failed to create PC record' });
     }
 });
 
