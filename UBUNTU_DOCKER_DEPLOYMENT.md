@@ -34,13 +34,13 @@ If you only want to deploy the frontend and connect to an external database:
 ```bash
 # Build and run frontend
 docker build -t tds-inventory-frontend .
-docker run -d -p 80:80 --name tds-inventory tds-inventory-frontend
+docker run -d -p 5555:80 --name tds-inventory tds-inventory-frontend
 
 # Or use docker-compose
 docker-compose up -d
 ```
 
-**Access:** http://your-server-ip/
+**Access:** http://your-server-ip:5555/
 
 ---
 
@@ -95,9 +95,9 @@ docker-compose -f docker-compose.full.yml logs -f
 ```
 
 **Access:** 
-- Frontend: http://your-server-ip/
-- API: http://your-server-ip/api/
-- PostgreSQL: localhost:5432 (from host)
+- Frontend: http://your-server-ip:5555/
+- API: http://your-server-ip:5555/api/
+- PostgreSQL: localhost:9999 (from host)
 
 ---
 
@@ -169,9 +169,9 @@ proxy_pass http://backend:5000;  # Points to backend service
 
 ### 1. **Firewall Setup**
 ```bash
-# Allow HTTP/HTTPS
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
+# Allow custom ports for Docker deployment
+sudo ufw allow 5555/tcp  # Frontend web port
+sudo ufw allow 9999/tcp  # PostgreSQL port (optional, for external access)
 
 # Only allow SSH from specific IPs (optional)
 sudo ufw allow from your.trusted.ip to any port 22
@@ -257,20 +257,20 @@ location / {
 ```
 
 ### Issue 4: Port Already in Use
-**Problem:** Port 80 already occupied
+**Problem:** Port 5555 already occupied
 
 **Solution:**
 ```bash
-# Find what's using port 80
-sudo lsof -i :80
-sudo netstat -tulpn | grep :80
+# Find what's using port 5555
+sudo lsof -i :5555
+sudo netstat -tulpn | grep :5555
 
-# Stop the service (e.g., Apache)
-sudo systemctl stop apache2
+# Stop the service if needed
+sudo systemctl stop conflicting-service
 
 # Or change port in docker-compose.yml
 ports:
-  - "8080:80"  # Use port 8080 instead
+  - "8888:80"  # Use port 8888 instead
 ```
 
 ---
@@ -344,7 +344,7 @@ server {
     server_name yourdomain.com www.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:80;
+        proxy_pass http://localhost:5555;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -365,10 +365,10 @@ sudo systemctl reload nginx
 - [ ] Docker and Docker Compose installed
 - [ ] `.env` file created with all variables
 - [ ] `nginx.conf` updated to point to `backend:5000`
-- [ ] Firewall configured (port 80/443 open)
+- [ ] Firewall configured (port 5555 open)
 - [ ] Containers running: `docker ps`
-- [ ] Frontend accessible: http://your-ip/
-- [ ] Backend API working: http://your-ip/api/health
+- [ ] Frontend accessible: http://your-ip:5555/
+- [ ] Backend API working: http://your-ip:5555/api/health
 - [ ] Database accessible and initialized
 - [ ] Can login to application
 - [ ] AI Assistant working (if enabled)
@@ -383,8 +383,8 @@ sudo systemctl reload nginx
 Your TDS Inventory system is now running on your Ubuntu server!
 
 **Access URLs:**
-- Frontend: http://your-server-ip/
-- API: http://your-server-ip/api/
+- Frontend: http://your-server-ip:5555/
+- API: http://your-server-ip:5555/api/
 
 **Default Login:** Check your database or `.env` file
 

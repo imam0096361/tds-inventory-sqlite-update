@@ -9,8 +9,7 @@ services:
     container_name: tds-inventory-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "5555:80"
     networks:
       - tds-network
     depends_on:
@@ -51,7 +50,7 @@ services:
     networks:
       - tds-network
     ports:
-      - "5432:5432"
+      - "9999:5432"
 
 networks:
   tds-network:

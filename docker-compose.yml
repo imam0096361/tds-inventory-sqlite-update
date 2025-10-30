@@ -6,5 +6,5 @@ services:
     container_name: it-inventory-frontend
     restart: unless-stopped
     ports:
-      # Map port 8888 on the host machine to port 80 inside the container
-      - "8888:80"
+      # Map port 5555 on the host machine to port 80 inside the container
+      - "5555:80"
