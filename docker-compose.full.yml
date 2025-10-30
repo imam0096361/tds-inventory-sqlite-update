@@ -5,7 +5,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.full
     container_name: tds-inventory-frontend
     restart: unless-stopped
     ports:
