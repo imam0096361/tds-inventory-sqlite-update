@@ -72,7 +72,7 @@ export const PeripheralLog: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!logToDelete) return;
-        await fetch(buildApiUrl(`/api/mouselogs/${logToDelete.id}`, { method: 'DELETE' });
+        await fetch(buildApiUrl(`/api/mouselogs/${logToDelete.id}`), { method: 'DELETE' });
         setLogs(logs.filter(log => log.id !== logToDelete.id));
         setLogToDelete(null);
     };

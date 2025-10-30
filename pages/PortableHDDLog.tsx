@@ -72,7 +72,7 @@ export const PortableHDDLog: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!logToDelete) return;
-        await fetch(buildApiUrl(`/api/portablehddlogs/${logToDelete.id}`, { method: 'DELETE' });
+        await fetch(buildApiUrl(`/api/portablehddlogs/${logToDelete.id}`), { method: 'DELETE' });
         setLogs(logs.filter(log => log.id !== logToDelete.id));
         setLogToDelete(null);
     };
