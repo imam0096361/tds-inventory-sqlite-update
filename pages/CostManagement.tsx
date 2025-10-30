@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { FinancialSummary, DepartmentCost, DepreciationData, MaintenanceCost, Budget, MonthlyTrend } from '../types';
-import { API_BASE_URL } from '../utils/api';
+import { API_BASE_URL, apiFetch } from '../utils/api';
+import { generateUUID } from '../utils/uuid';
 
 const CostManagement: React.FC = () => {
   // Only admins can access this page, so full edit access for everyone here
@@ -69,12 +70,7 @@ const CostManagement: React.FC = () => {
 
   const fetchMaintenanceCosts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/maintenance-costs`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch maintenance costs');
-      const data = await res.json();
+      const data = await apiFetch('/api/maintenance-costs');
       setMaintenanceCosts(data);
     } catch (err: any) {
       setError(err.message);
@@ -83,13 +79,8 @@ const CostManagement: React.FC = () => {
 
   const fetchBudgets = async () => {
     try {
-      const token = localStorage.getItem('token');
       const currentYear = new Date().getFullYear();
-      const res = await fetch(`${API_BASE_URL}/api/budgets?year=${currentYear}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch budgets');
-      const data = await res.json();
+      const data = await apiFetch(`/api/budgets?year=${currentYear}`);
       setBudgets(data);
     } catch (err: any) {
       setError(err.message);
@@ -98,12 +89,7 @@ const CostManagement: React.FC = () => {
 
   const fetchDepreciation = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/financial/depreciation`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch depreciation data');
-      const data = await res.json();
+      const data = await apiFetch('/api/financial/depreciation');
       setDepreciationData(data);
     } catch (err: any) {
       setError(err.message);
@@ -112,19 +98,13 @@ const CostManagement: React.FC = () => {
 
   const handleAddMaintenance = async (formData: Partial<MaintenanceCost>) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/maintenance-costs`, {
+      await apiFetch('/api/maintenance-costs', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
-          id: Date.now().toString(),
+          id: generateUUID(),
           ...formData
         })
       });
-      if (!res.ok) throw new Error('Failed to add maintenance cost');
       fetchMaintenanceCosts();
       setShowAddMaintenance(false);
     } catch (err: any) {
@@ -135,12 +115,7 @@ const CostManagement: React.FC = () => {
   const handleDeleteMaintenance = async (id: string) => {
     if (!confirm('Delete this maintenance record?')) return;
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE_URL}/api/maintenance-costs/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to delete');
+      await apiFetch(`/api/maintenance-costs/${id}`, { method: 'DELETE' });
       fetchMaintenanceCosts();
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -489,20 +464,14 @@ const CostManagement: React.FC = () => {
             <BudgetForm
               onSubmit={async (formData) => {
                 try {
-                  const token = localStorage.getItem('token');
-                  const res = await fetch(`${API_BASE_URL}/api/budgets`, {
+                  await apiFetch('/api/budgets', {
                     method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify({
-                      id: Date.now().toString(),
+                      id: generateUUID(),
                       ...formData,
                       year: new Date().getFullYear()
                     })
                   });
-                  if (!res.ok) throw new Error('Failed to add budget');
                   fetchBudgets();
                   setShowAddBudget(false);
                 } catch (err: any) {
