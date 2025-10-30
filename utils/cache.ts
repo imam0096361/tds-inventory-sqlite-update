@@ -228,7 +228,22 @@ async function fetchFromAPI<T>(url: string): Promise<T> {
     const { buildApiUrl } = await import('./api');
     const fullUrl = buildApiUrl(url);
     
-    const response = await fetch(fullUrl);
+    // Get authentication token
+    const token = localStorage.getItem('token');
+    
+    // Build headers
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(fullUrl, {
+        headers,
+        credentials: 'include'
+    });
     
     if (!response.ok) {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
