@@ -83,7 +83,7 @@ export const PeripheralLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(buildApiUrl(`/api/mouselogs/${editingLog.id}`, {
+            await fetch(buildApiUrl(`/api/mouselogs/${editingLog.id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -91,7 +91,7 @@ export const PeripheralLog: React.FC = () => {
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
             const newLog = { ...formData, id: crypto.randomUUID() };
-            await fetch('/api/mouselogs', {
+            await fetch(buildApiUrl('/api/mouselogs'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLog),
@@ -181,7 +181,7 @@ export const PeripheralLog: React.FC = () => {
             id: crypto.randomUUID()
         }));
 
-        const addPromises = logsToAdd.map(log => fetch('/api/mouselogs', {
+        const addPromises = logsToAdd.map(log => fetch(buildApiUrl('/api/mouselogs'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(log),

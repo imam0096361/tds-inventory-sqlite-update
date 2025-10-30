@@ -83,7 +83,7 @@ export const HeadphoneLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(buildApiUrl(`/api/headphonelogs/${editingLog.id}`, {
+            await fetch(buildApiUrl(`/api/headphonelogs/${editingLog.id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -91,7 +91,7 @@ export const HeadphoneLog: React.FC = () => {
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
             const newLog = { ...formData, id: crypto.randomUUID() };
-            await fetch('/api/headphonelogs', {
+            await fetch(buildApiUrl('/api/headphonelogs'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLog),
@@ -181,7 +181,7 @@ export const HeadphoneLog: React.FC = () => {
             id: crypto.randomUUID()
         }));
 
-        const addPromises = logsToAdd.map(log => fetch('/api/headphonelogs', {
+        const addPromises = logsToAdd.map(log => fetch(buildApiUrl('/api/headphonelogs'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(log),

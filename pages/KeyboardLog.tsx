@@ -83,7 +83,7 @@ export const KeyboardLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(buildApiUrl(`/api/keyboardlogs/${editingLog.id}`, {
+            await fetch(buildApiUrl(`/api/keyboardlogs/${editingLog.id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -91,7 +91,7 @@ export const KeyboardLog: React.FC = () => {
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
             const newLog = { ...formData, id: crypto.randomUUID() };
-            await fetch('/api/keyboardlogs', {
+            await fetch(buildApiUrl('/api/keyboardlogs'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLog),
@@ -175,7 +175,7 @@ export const KeyboardLog: React.FC = () => {
             id: crypto.randomUUID()
         }));
 
-        const addPromises = logsToAdd.map(log => fetch('/api/keyboardlogs', {
+        const addPromises = logsToAdd.map(log => fetch(buildApiUrl('/api/keyboardlogs'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(log),

@@ -83,7 +83,7 @@ export const PortableHDDLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(buildApiUrl(`/api/portablehddlogs/${editingLog.id}`, {
+            await fetch(buildApiUrl(`/api/portablehddlogs/${editingLog.id}`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -91,7 +91,7 @@ export const PortableHDDLog: React.FC = () => {
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
             const newLog = { ...formData, id: crypto.randomUUID() };
-            await fetch('/api/portablehddlogs', {
+            await fetch(buildApiUrl('/api/portablehddlogs'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLog),
@@ -181,7 +181,7 @@ export const PortableHDDLog: React.FC = () => {
             id: crypto.randomUUID()
         }));
 
-        const addPromises = logsToAdd.map(log => fetch('/api/portablehddlogs', {
+        const addPromises = logsToAdd.map(log => fetch(buildApiUrl('/api/portablehddlogs'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(log),
