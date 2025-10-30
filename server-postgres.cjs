@@ -72,10 +72,15 @@ if (!JWT_SECRET || JWT_SECRET.length < 32) {
     process.exit(1);
 }
 
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
+// CORS configuration - supports both Vercel and Docker deployments
+const corsOrigins = process.env.CORS_ORIGIN 
+    ? (process.env.CORS_ORIGIN === '*' ? '*' : process.env.CORS_ORIGIN.split(',').map(o => o.trim()))
+    : (process.env.NODE_ENV === 'production'
         ? ['https://tds-inventory-sqlite-update.vercel.app', 'https://tds-inventory-sqlite-update-git-main.vercel.app']
-        : ['http://localhost:3000', 'http://localhost:5173'],
+        : ['http://localhost:3000', 'http://localhost:5173']);
+
+app.use(cors({
+    origin: corsOrigins,
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Prevent large payload attacks
