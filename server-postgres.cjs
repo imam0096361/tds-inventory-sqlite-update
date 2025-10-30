@@ -555,6 +555,24 @@ async function generateInsights(data, module, filters) {
                     priority: 'low'
                 });
             }
+            
+            // Maintenance costs summary
+            if (data.maintenance_costs && data.maintenance_costs.length > 0) {
+                const totalMaintenanceCost = data.maintenance_costs.reduce(
+                    (sum, item) => sum + parseFloat(item.cost || 0), 0
+                );
+                const pendingMaintenance = data.maintenance_costs.filter(
+                    item => item.status === 'Pending'
+                ).length;
+                
+                insights.push({
+                    type: 'info',
+                    icon: '🔧',
+                    text: `Maintenance costs: $${totalMaintenanceCost.toFixed(2)} (${pendingMaintenance} pending)`,
+                    details: `Total of ${data.maintenance_costs.length} maintenance records`,
+                    priority: 'medium'
+                });
+            }
         } else if (module === 'pcs' && Array.isArray(data)) {
             // PC-specific insights
             const avgRam = data.reduce((sum, pc) => {
@@ -621,6 +639,98 @@ async function generateInsights(data, module, filters) {
                     icon: '🔧',
                     text: `${maintenance} server(s) in maintenance`,
                     priority: 'medium'
+                });
+            }
+        } else if (module === 'maintenance_costs' && Array.isArray(data)) {
+            // Maintenance Costs insights
+            const totalCost = data.reduce((sum, item) => sum + parseFloat(item.cost || 0), 0);
+            const pending = data.filter(item => item.status === 'Pending').length;
+            const critical = data.filter(item => item.priority === 'Critical').length;
+            const inWarranty = data.filter(item => item.warranty_status === 'In Warranty').length;
+            
+            insights.push({
+                type: 'info',
+                icon: '💰',
+                text: `Total maintenance costs: $${totalCost.toFixed(2)}`,
+                priority: 'medium'
+            });
+            
+            if (critical > 0) {
+                insights.push({
+                    type: 'alert',
+                    icon: '🔴',
+                    text: `${critical} critical priority maintenance issue(s)`,
+                    action: 'Address critical items immediately',
+                    priority: 'critical'
+                });
+            }
+            
+            if (pending > 0) {
+                insights.push({
+                    type: 'warning',
+                    icon: '⏳',
+                    text: `${pending} pending maintenance item(s)`,
+                    action: 'Review and approve pending items',
+                    priority: 'medium'
+                });
+            }
+            
+            if (inWarranty > 0) {
+                const warrantyCost = data
+                    .filter(item => item.warranty_status === 'In Warranty')
+                    .reduce((sum, item) => sum + parseFloat(item.cost || 0), 0);
+                
+                insights.push({
+                    type: 'success',
+                    icon: '🛡️',
+                    text: `${inWarranty} warranty repair(s) - potential savings: $${warrantyCost.toFixed(2)}`,
+                    action: 'Contact vendor for warranty claims',
+                    priority: 'high'
+                });
+            }
+        } else if (module === 'budgets' && Array.isArray(data)) {
+            // Budget insights
+            const totalBudget = data.reduce((sum, item) => sum + parseFloat(item.budget_amount || 0), 0);
+            const totalSpent = data.reduce((sum, item) => sum + parseFloat(item.spent_amount || 0), 0);
+            const utilizationRate = totalBudget > 0 ? (totalSpent / totalBudget * 100) : 0;
+            
+            insights.push({
+                type: 'info',
+                icon: '📊',
+                text: `Budget utilization: ${utilizationRate.toFixed(1)}% ($${totalSpent.toFixed(2)} of $${totalBudget.toFixed(2)})`,
+                priority: 'medium'
+            });
+            
+            if (utilizationRate > 90) {
+                insights.push({
+                    type: 'alert',
+                    icon: '⚠️',
+                    text: 'Budget nearly exhausted',
+                    action: 'Request additional budget or reduce spending',
+                    priority: 'high'
+                });
+            } else if (utilizationRate > 75) {
+                insights.push({
+                    type: 'warning',
+                    icon: '📉',
+                    text: 'Budget utilization above 75%',
+                    action: 'Monitor spending closely',
+                    priority: 'medium'
+                });
+            }
+            
+            // Check for over-budget departments
+            const overBudget = data.filter(item => 
+                parseFloat(item.spent_amount || 0) > parseFloat(item.budget_amount || 0)
+            );
+            
+            if (overBudget.length > 0) {
+                insights.push({
+                    type: 'alert',
+                    icon: '🚨',
+                    text: `${overBudget.length} department(s) over budget`,
+                    action: 'Review department spending immediately',
+                    priority: 'critical'
                 });
             }
         }
@@ -1579,6 +1689,35 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
    - servicedBy (TEXT): Technician name
    - comment (TEXT): Service notes
 
+5. **Maintenance Costs** (maintenance_costs):
+   - asset_type (TEXT): "PC", "Laptop", "Server", "Mouse", "Keyboard", "SSD", "Headphone", "Portable HDD"
+   - asset_id (TEXT): Asset identifier like "PC-001", "LAP-05"
+   - asset_name (TEXT): Asset name
+   - username (TEXT): User who uses the asset
+   - cost (NUMBER): Maintenance cost amount (e.g., 5000.50)
+   - date (TEXT): Maintenance date in YYYY-MM-DD
+   - description (TEXT): What was done
+   - service_provider (TEXT): Company/technician who did the work
+   - category (TEXT): "Repair", "Upgrade", "Replacement", "Maintenance", "Cleaning"
+   - department (TEXT): Department name
+   - status (TEXT): "Pending", "Completed", "Cancelled"
+   - priority (TEXT): "Low", "Medium", "High", "Critical"
+   - invoice_number (TEXT): Invoice reference
+   - warranty_status (TEXT): "In Warranty", "Out of Warranty"
+   - approval_status (TEXT): "Pending", "Approved", "Rejected"
+   - created_by (TEXT): Who created the record
+   - created_at (TEXT): Creation timestamp
+
+6. **Budgets** (budgets):
+   - department (TEXT): Department name
+   - year (NUMBER): Budget year like 2025
+   - quarter (NUMBER): 1, 2, 3, or 4
+   - budget_amount (NUMBER): Allocated budget
+   - spent_amount (NUMBER): Amount already spent
+   - remaining_amount (NUMBER): Budget remaining
+   - status (TEXT): Budget status
+   - created_at (TEXT): Creation timestamp
+
 === IMPORTANT INSTRUCTIONS ===
 
 1. **CPU Matching**: 
@@ -1619,6 +1758,12 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
 - "SSD replacements" → module: "ssdlogs"
 - "headphones" → module: "headphonelogs"
 - "portable HDD" or "external drives" → module: "portablehddlogs"
+- "maintenance costs" or "repair costs" or "service costs" → module: "maintenance_costs"
+- "budgets" or "department budgets" or "financial budget" → module: "budgets"
+- "cost for user X" → module: "maintenance_costs", filter username
+- "pending repairs" → module: "maintenance_costs", filter status="Pending"
+- "critical maintenance" → module: "maintenance_costs", filter priority="Critical"
+- "warranty repairs" → module: "maintenance_costs", filter warranty_status="In Warranty"
 
 **IMPORTANT - USER/PERSON QUERIES:**
 - When query mentions a PERSON NAME (like "user Karim", "John Doe", "Sarah Wilson"):
@@ -1638,7 +1783,7 @@ app.post('/api/ai-query', authenticateToken, async (req, res) => {
 Respond with ONLY valid JSON (no markdown, no code blocks, no explanation):
 
 {
-  "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs" | "headphonelogs" | "portablehddlogs" | "all",
+  "module": "pcs" | "laptops" | "servers" | "mouselogs" | "keyboardlogs" | "ssdlogs" | "headphonelogs" | "portablehddlogs" | "maintenance_costs" | "budgets" | "all",
   "filters": {
     "fieldName": {
       "operator": "equals" | "contains" | "greaterThan" | "lessThan",
@@ -1688,6 +1833,36 @@ Query: "What equipment does John Doe have"
 Query: "Find everything for Sarah Wilson"
 {"module":"all","filters":{"username":{"operator":"contains","value":"Sarah Wilson"}},"interpretation":"Comprehensive search for Sarah Wilson in PCs, Laptops, and peripheral logs"}
 
+Query: "Show all maintenance costs"
+{"module":"maintenance_costs","filters":{},"interpretation":"Retrieving all maintenance cost records"}
+
+Query: "Pending repairs"
+{"module":"maintenance_costs","filters":{"status":{"operator":"equals","value":"Pending"}},"interpretation":"Finding all pending maintenance work"}
+
+Query: "Critical maintenance issues"
+{"module":"maintenance_costs","filters":{"priority":{"operator":"equals","value":"Critical"}},"interpretation":"Finding critical priority maintenance costs"}
+
+Query: "Repairs for IT department"
+{"module":"maintenance_costs","filters":{"department":{"operator":"equals","value":"IT"}},"interpretation":"Finding all maintenance costs for IT department"}
+
+Query: "Maintenance costs over 5000"
+{"module":"maintenance_costs","filters":{"cost":{"operator":"greaterThan","value":"5000"}},"interpretation":"Finding maintenance costs exceeding 5000"}
+
+Query: "Warranty repairs"
+{"module":"maintenance_costs","filters":{"warranty_status":{"operator":"equals","value":"In Warranty"}},"interpretation":"Finding repairs covered by warranty"}
+
+Query: "Maintenance for user John"
+{"module":"maintenance_costs","filters":{"username":{"operator":"contains","value":"John"}},"interpretation":"Finding maintenance costs for user John"}
+
+Query: "Show IT department budget"
+{"module":"budgets","filters":{"department":{"operator":"equals","value":"IT"}},"interpretation":"Retrieving IT department budget information"}
+
+Query: "All budgets for 2025"
+{"module":"budgets","filters":{"year":{"operator":"equals","value":"2025"}},"interpretation":"Retrieving all department budgets for year 2025"}
+
+Query: "Quarter 1 budgets"
+{"module":"budgets","filters":{"quarter":{"operator":"equals","value":"1"}},"interpretation":"Finding Q1 budget allocations"}
+
 NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
 
         const result = await model.generateContent(prompt);
@@ -1713,6 +1888,8 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
                         SELECT username FROM pcs WHERE username IS NOT NULL
                         UNION
                         SELECT username FROM laptops WHERE username IS NOT NULL
+                        UNION
+                        SELECT username FROM maintenance_costs WHERE username IS NOT NULL
                         UNION
                         SELECT "pcUsername" as username FROM "mouseLogs" WHERE "pcUsername" IS NOT NULL
                         UNION
@@ -1917,6 +2094,15 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
                     .catch(err => ({ module: 'portableHDDLogs', data: [], error: err.message }))
             );
 
+            // Maintenance Costs (field: username)
+            const maintenanceQuery = buildConditions({ username: 'username' });
+            const maintenanceWhere = maintenanceQuery.conditions.length > 0 ? `WHERE ${maintenanceQuery.conditions.join(' AND ')}` : '';
+            searchPromises.push(
+                pool.query(`SELECT *, 'Maintenance Cost' as "itemType" FROM maintenance_costs ${maintenanceWhere}`, maintenanceQuery.values)
+                    .then(result => ({ module: 'maintenance_costs', data: result.rows }))
+                    .catch(err => ({ module: 'maintenance_costs', data: [], error: err.message }))
+            );
+
             // Execute all searches in parallel
             const results = await Promise.all(searchPromises);
 
@@ -1983,6 +2169,12 @@ NOW PROCESS THE USER QUERY AND RETURN ONLY THE JSON RESPONSE.`;
                 break;
             case 'portablehddlogs':
                 tableName = '"portableHDDLogs"';
+                break;
+            case 'maintenance_costs':
+                tableName = 'maintenance_costs';
+                break;
+            case 'budgets':
+                tableName = 'budgets';
                 break;
             default:
                 throw new Error('Invalid module specified');
