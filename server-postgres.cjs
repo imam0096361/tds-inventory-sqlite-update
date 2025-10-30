@@ -815,7 +815,7 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
 });
 
 // ============= PC ENDPOINTS =============
-app.get('/api/pcs', async (req, res) => {
+app.get('/api/pcs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM pcs');
         res.json(result.rows);
@@ -824,7 +824,7 @@ app.get('/api/pcs', async (req, res) => {
     }
 });
 
-app.post('/api/pcs', async (req, res) => {
+app.post('/api/pcs', authenticateToken, async (req, res) => {
     const { id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
     try {
         await pool.query(
@@ -837,7 +837,7 @@ app.post('/api/pcs', async (req, res) => {
     }
 });
 
-app.put('/api/pcs/:id', async (req, res) => {
+app.put('/api/pcs/:id', authenticateToken, async (req, res) => {
     const { department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
     try {
         const result = await pool.query(
@@ -850,7 +850,7 @@ app.put('/api/pcs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/pcs/:id', async (req, res) => {
+app.delete('/api/pcs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM pcs WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -860,7 +860,7 @@ app.delete('/api/pcs/:id', async (req, res) => {
 });
 
 // ============= LAPTOP ENDPOINTS =============
-app.get('/api/laptops', async (req, res) => {
+app.get('/api/laptops', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM laptops');
         res.json(result.rows);
@@ -869,7 +869,7 @@ app.get('/api/laptops', async (req, res) => {
     }
 });
 
-app.post('/api/laptops', async (req, res) => {
+app.post('/api/laptops', authenticateToken, async (req, res) => {
     const { id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
     try {
         await pool.query(
@@ -882,7 +882,7 @@ app.post('/api/laptops', async (req, res) => {
     }
 });
 
-app.put('/api/laptops/:id', async (req, res) => {
+app.put('/api/laptops/:id', authenticateToken, async (req, res) => {
     const { pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
     try {
         const result = await pool.query(
@@ -895,7 +895,7 @@ app.put('/api/laptops/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/laptops/:id', async (req, res) => {
+app.delete('/api/laptops/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM laptops WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -905,7 +905,7 @@ app.delete('/api/laptops/:id', async (req, res) => {
 });
 
 // ============= SERVER ENDPOINTS =============
-app.get('/api/servers', async (req, res) => {
+app.get('/api/servers', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM servers');
         res.json(result.rows);
@@ -914,7 +914,7 @@ app.get('/api/servers', async (req, res) => {
     }
 });
 
-app.post('/api/servers', async (req, res) => {
+app.post('/api/servers', authenticateToken, async (req, res) => {
     const { id, serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields } = req.body;
     try {
         await pool.query(
@@ -927,7 +927,7 @@ app.post('/api/servers', async (req, res) => {
     }
 });
 
-app.put('/api/servers/:id', async (req, res) => {
+app.put('/api/servers/:id', authenticateToken, async (req, res) => {
     const { serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields } = req.body;
     try {
         const result = await pool.query(
@@ -940,7 +940,7 @@ app.put('/api/servers/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/servers/:id', async (req, res) => {
+app.delete('/api/servers/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM servers WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -950,7 +950,7 @@ app.delete('/api/servers/:id', async (req, res) => {
 });
 
 // ============= MOUSE LOG ENDPOINTS =============
-app.get('/api/mouselogs', async (req, res) => {
+app.get('/api/mouselogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "mouseLogs"');
         res.json(result.rows);
@@ -959,7 +959,7 @@ app.get('/api/mouselogs', async (req, res) => {
     }
 });
 
-app.post('/api/mouselogs', async (req, res) => {
+app.post('/api/mouselogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -972,7 +972,7 @@ app.post('/api/mouselogs', async (req, res) => {
     }
 });
 
-app.put('/api/mouselogs/:id', async (req, res) => {
+app.put('/api/mouselogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -985,7 +985,7 @@ app.put('/api/mouselogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/mouselogs/:id', async (req, res) => {
+app.delete('/api/mouselogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "mouseLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -995,7 +995,7 @@ app.delete('/api/mouselogs/:id', async (req, res) => {
 });
 
 // ============= KEYBOARD LOG ENDPOINTS =============
-app.get('/api/keyboardlogs', async (req, res) => {
+app.get('/api/keyboardlogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "keyboardLogs"');
         res.json(result.rows);
@@ -1004,7 +1004,7 @@ app.get('/api/keyboardlogs', async (req, res) => {
     }
 });
 
-app.post('/api/keyboardlogs', async (req, res) => {
+app.post('/api/keyboardlogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1017,7 +1017,7 @@ app.post('/api/keyboardlogs', async (req, res) => {
     }
 });
 
-app.put('/api/keyboardlogs/:id', async (req, res) => {
+app.put('/api/keyboardlogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1030,7 +1030,7 @@ app.put('/api/keyboardlogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/keyboardlogs/:id', async (req, res) => {
+app.delete('/api/keyboardlogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "keyboardLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -1040,7 +1040,7 @@ app.delete('/api/keyboardlogs/:id', async (req, res) => {
 });
 
 // ============= SSD LOG ENDPOINTS =============
-app.get('/api/ssdlogs', async (req, res) => {
+app.get('/api/ssdlogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "ssdLogs"');
         res.json(result.rows);
@@ -1049,7 +1049,7 @@ app.get('/api/ssdlogs', async (req, res) => {
     }
 });
 
-app.post('/api/ssdlogs', async (req, res) => {
+app.post('/api/ssdlogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1062,7 +1062,7 @@ app.post('/api/ssdlogs', async (req, res) => {
     }
 });
 
-app.put('/api/ssdlogs/:id', async (req, res) => {
+app.put('/api/ssdlogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1075,7 +1075,7 @@ app.put('/api/ssdlogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/ssdlogs/:id', async (req, res) => {
+app.delete('/api/ssdlogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "ssdLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -1085,7 +1085,7 @@ app.delete('/api/ssdlogs/:id', async (req, res) => {
 });
 
 // ============= HEADPHONE LOG ENDPOINTS =============
-app.get('/api/headphonelogs', async (req, res) => {
+app.get('/api/headphonelogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "headphoneLogs"');
         res.json(result.rows);
@@ -1094,7 +1094,7 @@ app.get('/api/headphonelogs', async (req, res) => {
     }
 });
 
-app.post('/api/headphonelogs', async (req, res) => {
+app.post('/api/headphonelogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1107,7 +1107,7 @@ app.post('/api/headphonelogs', async (req, res) => {
     }
 });
 
-app.put('/api/headphonelogs/:id', async (req, res) => {
+app.put('/api/headphonelogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1120,7 +1120,7 @@ app.put('/api/headphonelogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/headphonelogs/:id', async (req, res) => {
+app.delete('/api/headphonelogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "headphoneLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
@@ -1130,7 +1130,7 @@ app.delete('/api/headphonelogs/:id', async (req, res) => {
 });
 
 // ============= PORTABLE HDD LOG ENDPOINTS =============
-app.get('/api/portablehddlogs', async (req, res) => {
+app.get('/api/portablehddlogs', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM "portableHDDLogs"');
         res.json(result.rows);
@@ -1139,7 +1139,7 @@ app.get('/api/portablehddlogs', async (req, res) => {
     }
 });
 
-app.post('/api/portablehddlogs', async (req, res) => {
+app.post('/api/portablehddlogs', authenticateToken, async (req, res) => {
     const { id, productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         await pool.query(
@@ -1152,7 +1152,7 @@ app.post('/api/portablehddlogs', async (req, res) => {
     }
 });
 
-app.put('/api/portablehddlogs/:id', async (req, res) => {
+app.put('/api/portablehddlogs/:id', authenticateToken, async (req, res) => {
     const { productName, serialNumber, pcName, pcUsername, department, date, time, servicedBy, comment } = req.body;
     try {
         const result = await pool.query(
@@ -1165,7 +1165,7 @@ app.put('/api/portablehddlogs/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/portablehddlogs/:id', async (req, res) => {
+app.delete('/api/portablehddlogs/:id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('DELETE FROM "portableHDDLogs" WHERE id = $1', [req.params.id]);
         res.json({ changes: result.rowCount });
