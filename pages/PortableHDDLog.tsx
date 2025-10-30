@@ -9,7 +9,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { ImportModal } from '../components/ImportModal';
-import { buildApiUrl } from '../utils/api';
+import { buildApiUrl, apiFetch } from '../utils/api';
 
 const emptyFormState: Omit<PeripheralLogEntry, 'id'> = {
     productName: '',
@@ -37,8 +37,7 @@ export const PortableHDDLog: React.FC = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     useEffect(() => {
-        fetch(buildApiUrl('/api/portablehddlogs'))
-            .then(res => res.json())
+        apiFetch<PeripheralLogEntry[]>('/api/portablehddlogs')
             .then(data => setLogs(data));
     }, []);
 
@@ -72,7 +71,7 @@ export const PortableHDDLog: React.FC = () => {
 
     const handleConfirmDelete = async () => {
         if (!logToDelete) return;
-        await fetch(buildApiUrl(`/api/portablehddlogs/${logToDelete.id}`), { method: 'DELETE' });
+        await apiFetch(`/api/portablehddlogs/${logToDelete.id}`, { method: 'DELETE' });
         setLogs(logs.filter(log => log.id !== logToDelete.id));
         setLogToDelete(null);
     };
@@ -83,17 +82,15 @@ export const PortableHDDLog: React.FC = () => {
 
     const handleSave = async () => {
         if (editingLog) {
-            await fetch(buildApiUrl(`/api/portablehddlogs/${editingLog.id}`), {
+            await apiFetch(`/api/portablehddlogs/${editingLog.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
             setLogs(logs.map(log => (log.id === editingLog.id ? { ...formData, id: editingLog.id } : log)));
         } else {
             const newLog = { ...formData, id: crypto.randomUUID() };
-            await fetch(buildApiUrl('/api/portablehddlogs'), {
+            await apiFetch('/api/portablehddlogs', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newLog),
             });
             setLogs([...logs, newLog]);
@@ -181,9 +178,8 @@ export const PortableHDDLog: React.FC = () => {
             id: crypto.randomUUID()
         }));
 
-        const addPromises = logsToAdd.map(log => fetch(buildApiUrl('/api/portablehddlogs'), {
+        const addPromises = logsToAdd.map(log => apiFetch('/api/portablehddlogs', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(log),
         }));
         
