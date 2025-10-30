@@ -79,9 +79,9 @@ app.use(cookieParser());
 // PostgreSQL connection pool
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: true }  // Strict SSL in production - secure!
+        : { rejectUnauthorized: false }  // Allow dev certs only in development
 });
 
 // Test database connection
