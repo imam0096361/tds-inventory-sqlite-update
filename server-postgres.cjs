@@ -447,6 +447,51 @@ const validateInput = (req, res, next) => {
     next();
 };
 
+// ============= RATE LIMITING =============
+const loginAttempts = new Map(); // Store login attempts: IP -> { count, resetTime }
+
+const rateLimitLogin = (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    const windowMs = 15 * 60 * 1000; // 15 minutes
+    const maxAttempts = 5; // 5 attempts per window
+
+    if (!loginAttempts.has(ip)) {
+        loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
+        return next();
+    }
+
+    const attempt = loginAttempts.get(ip);
+
+    // Reset if window has expired
+    if (now > attempt.resetTime) {
+        loginAttempts.set(ip, { count: 1, resetTime: now + windowMs });
+        return next();
+    }
+
+    // Check if limit exceeded
+    if (attempt.count >= maxAttempts) {
+        const remainingTime = Math.ceil((attempt.resetTime - now) / 1000 / 60);
+        return res.status(429).json({
+            error: `Too many login attempts. Please try again in ${remainingTime} minutes.`
+        });
+    }
+
+    // Increment attempt count
+    attempt.count++;
+    return next();
+};
+
+// Clean up old entries every hour
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, attempt] of loginAttempts.entries()) {
+        if (now > attempt.resetTime) {
+            loginAttempts.delete(ip);
+        }
+    }
+}, 60 * 60 * 1000);
+
 // ==================== AI INSIGHTS GENERATION ====================
 async function generateInsights(data, module, filters) {
     const insights = [];
@@ -685,7 +730,7 @@ const isAdminOnly = (req, res, next) => {
 // ============= AUTHENTICATION ENDPOINTS =============
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', rateLimitLogin, async (req, res) => {
     const { username, password } = req.body;
     
     try {
