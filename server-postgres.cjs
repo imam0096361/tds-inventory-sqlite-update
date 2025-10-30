@@ -341,12 +341,20 @@ async function initDatabase() {
                 asset_type TEXT NOT NULL,
                 asset_id TEXT NOT NULL,
                 asset_name TEXT,
+                username TEXT,
                 cost DECIMAL(10,2) NOT NULL,
                 date DATE NOT NULL,
                 description TEXT,
                 service_provider TEXT,
                 category TEXT,
                 department TEXT,
+                status TEXT DEFAULT 'Pending',
+                priority TEXT DEFAULT 'Medium',
+                invoice_number TEXT,
+                warranty_status TEXT,
+                approval_status TEXT DEFAULT 'Pending',
+                approved_by TEXT,
+                completion_date DATE,
                 created_by TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -2083,13 +2091,20 @@ app.get('/api/maintenance-costs/asset/:assetType/:assetId', authenticateToken, i
 
 // Add maintenance cost (EDIT permission required)
 app.post('/api/maintenance-costs', authenticateToken, isAdminOnly, async (req, res) => {
-    const { id, asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department } = req.body;
+    const { 
+        id, asset_type, asset_id, asset_name, username, cost, date, description, 
+        service_provider, category, department, status, priority, invoice_number, 
+        warranty_status, approval_status 
+    } = req.body;
     try {
         await pool.query(
             `INSERT INTO maintenance_costs 
-            (id, asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department, created_by) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-            [id, asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department, req.user.username]
+            (id, asset_type, asset_id, asset_name, username, cost, date, description, service_provider, 
+             category, department, status, priority, invoice_number, warranty_status, approval_status, created_by) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+            [id, asset_type, asset_id, asset_name, username, cost, date, description, service_provider, 
+             category, department, status || 'Pending', priority || 'Medium', invoice_number, 
+             warranty_status, approval_status || 'Pending', req.user.username]
         );
         res.json({ id });
     } catch (err) {
@@ -2099,14 +2114,22 @@ app.post('/api/maintenance-costs', authenticateToken, isAdminOnly, async (req, r
 
 // Update maintenance cost (EDIT permission required)
 app.put('/api/maintenance-costs/:id', authenticateToken, isAdminOnly, async (req, res) => {
-    const { asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department } = req.body;
+    const { 
+        asset_type, asset_id, asset_name, username, cost, date, description, 
+        service_provider, category, department, status, priority, invoice_number, 
+        warranty_status, approval_status, completion_date 
+    } = req.body;
     try {
         const result = await pool.query(
             `UPDATE maintenance_costs 
-            SET asset_type = $1, asset_id = $2, asset_name = $3, cost = $4, date = $5, 
-                description = $6, service_provider = $7, category = $8, department = $9 
-            WHERE id = $10`,
-            [asset_type, asset_id, asset_name, cost, date, description, service_provider, category, department, req.params.id]
+            SET asset_type = $1, asset_id = $2, asset_name = $3, username = $4, cost = $5, date = $6, 
+                description = $7, service_provider = $8, category = $9, department = $10, status = $11,
+                priority = $12, invoice_number = $13, warranty_status = $14, approval_status = $15,
+                completion_date = $16
+            WHERE id = $17`,
+            [asset_type, asset_id, asset_name, username, cost, date, description, service_provider, 
+             category, department, status, priority, invoice_number, warranty_status, approval_status, 
+             completion_date, req.params.id]
         );
         res.json({ changes: result.rowCount });
     } catch (err) {

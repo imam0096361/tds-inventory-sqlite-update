@@ -390,43 +390,80 @@ const CostManagement: React.FC = () => {
               <p className="text-gray-500 text-center py-12">No maintenance records yet</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full text-sm">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-4 py-3 text-left font-semibold">Date</th>
-                      <th className="px-4 py-3 text-left font-semibold">Asset</th>
-                      <th className="px-4 py-3 text-left font-semibold">Type</th>
-                      <th className="px-4 py-3 text-left font-semibold">Description</th>
-                      <th className="px-4 py-3 text-left font-semibold">Provider</th>
-                      <th className="px-4 py-3 text-right font-semibold">Cost</th>
-                      <th className="px-4 py-3 text-center font-semibold">Actions</th>
+                      <th className="px-3 py-2 text-left font-semibold">Date</th>
+                      <th className="px-3 py-2 text-left font-semibold">Asset</th>
+                      <th className="px-3 py-2 text-left font-semibold">Type</th>
+                      <th className="px-3 py-2 text-left font-semibold">👤 Username</th>
+                      <th className="px-3 py-2 text-left font-semibold">🎯 Priority</th>
+                      <th className="px-3 py-2 text-left font-semibold">📊 Status</th>
+                      <th className="px-3 py-2 text-left font-semibold">🛡️ Warranty</th>
+                      <th className="px-3 py-2 text-left font-semibold">📄 Invoice</th>
+                      <th className="px-3 py-2 text-left font-semibold">Description</th>
+                      <th className="px-3 py-2 text-right font-semibold">Cost</th>
+                      <th className="px-3 py-2 text-center font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {maintenanceCosts.map((cost) => (
-                      <tr key={cost.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3">{new Date(cost.date).toLocaleDateString()}</td>
-                        <td className="px-4 py-3 font-medium">{cost.asset_name || cost.asset_id}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
-                            {cost.asset_type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">{cost.description || '-'}</td>
-                        <td className="px-4 py-3 text-sm">{cost.service_provider || '-'}</td>
-                        <td className="px-4 py-3 text-right font-bold text-green-600">
-                          {formatCurrency(cost.cost)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => handleDeleteMaintenance(cost.id)}
-                            className="text-red-600 hover:text-red-800 font-semibold"
-                          >
-                            🗑️ Delete
-                          </button>
+                    {maintenanceCosts.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
+                          No maintenance records yet. Click "+ Add Maintenance Cost" to create one.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      maintenanceCosts.map((cost) => (
+                        <tr key={cost.id} className="border-b hover:bg-gray-50">
+                          <td className="px-3 py-2 text-xs">{new Date(cost.date).toLocaleDateString()}</td>
+                          <td className="px-3 py-2">
+                            <div className="font-medium">{cost.asset_name || cost.asset_id}</div>
+                            <div className="text-xs text-gray-500">{cost.department || '-'}</div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
+                              {cost.asset_type}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="text-blue-600 font-medium">{cost.username || '-'}</span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {cost.priority === 'Critical' && <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">🔴 Critical</span>}
+                            {cost.priority === 'High' && <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">🟠 High</span>}
+                            {cost.priority === 'Medium' && <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">🟡 Medium</span>}
+                            {cost.priority === 'Low' && <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">🟢 Low</span>}
+                            {!cost.priority && <span className="text-gray-400">-</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            {cost.status === 'Completed' && <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">✅ Done</span>}
+                            {cost.status === 'Pending' && <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">⏳ Pending</span>}
+                            {cost.status === 'Cancelled' && <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">❌ Cancelled</span>}
+                            {!cost.status && <span className="text-gray-400">-</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            {cost.warranty_status === 'In Warranty' && <span className="text-green-600 text-xs">✅ Yes</span>}
+                            {cost.warranty_status === 'Out of Warranty' && <span className="text-red-600 text-xs">❌ No</span>}
+                            {!cost.warranty_status && <span className="text-gray-400">-</span>}
+                          </td>
+                          <td className="px-3 py-2 text-xs font-mono text-purple-600">{cost.invoice_number || '-'}</td>
+                          <td className="px-3 py-2 text-xs text-gray-600 max-w-xs truncate" title={cost.description}>
+                            {cost.description || '-'}</td>
+                          <td className="px-3 py-2 text-right font-bold text-green-600">
+                            {formatCurrency(cost.cost)}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              onClick={() => handleDeleteMaintenance(cost.id)}
+                              className="text-red-600 hover:text-red-800 font-semibold text-xs px-2 py-1 rounded hover:bg-red-50"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -627,12 +664,17 @@ const MaintenanceForm: React.FC<{
     asset_type: 'PC',
     asset_id: '',
     asset_name: '',
+    username: '',
     cost: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
     service_provider: '',
     category: 'Repair',
-    department: ''
+    department: '',
+    status: 'Pending',
+    priority: 'Medium',
+    invoice_number: '',
+    warranty_status: 'Out of Warranty'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -646,7 +688,8 @@ const MaintenanceForm: React.FC<{
   return (
     <div className="bg-white p-6 rounded-xl border-2 border-blue-300 shadow-lg">
       <h3 className="text-xl font-bold mb-4">Add Maintenance Cost</h3>
-      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-4">
+        {/* Row 1 */}
         <div>
           <label className="block text-sm font-semibold mb-1">Asset Type*</label>
           <select
@@ -661,6 +704,8 @@ const MaintenanceForm: React.FC<{
             <option value="Mouse">Mouse</option>
             <option value="Keyboard">Keyboard</option>
             <option value="SSD">SSD</option>
+            <option value="Headphone">Headphone</option>
+            <option value="Portable HDD">Portable HDD</option>
           </select>
         </div>
         <div>
@@ -670,6 +715,7 @@ const MaintenanceForm: React.FC<{
             value={formData.asset_id}
             onChange={(e) => setFormData({ ...formData, asset_id: e.target.value })}
             className="w-full px-3 py-2 border rounded"
+            placeholder="e.g., PC-001"
             required
           />
         </div>
@@ -680,6 +726,21 @@ const MaintenanceForm: React.FC<{
             value={formData.asset_name}
             onChange={(e) => setFormData({ ...formData, asset_name: e.target.value })}
             className="w-full px-3 py-2 border rounded"
+            placeholder="e.g., Dell OptiPlex"
+          />
+        </div>
+
+        {/* Row 2 - NEW: Username */}
+        <div>
+          <label className="block text-sm font-semibold mb-1">
+            <span className="text-blue-600">👤 Username</span>
+          </label>
+          <input
+            type="text"
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            className="w-full px-3 py-2 border rounded"
+            placeholder="User who uses this asset"
           />
         </div>
         <div>
@@ -690,6 +751,7 @@ const MaintenanceForm: React.FC<{
             value={formData.cost}
             onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
             className="w-full px-3 py-2 border rounded"
+            placeholder="e.g., 5000.00"
             required
           />
         </div>
@@ -703,6 +765,8 @@ const MaintenanceForm: React.FC<{
             required
           />
         </div>
+
+        {/* Row 3 */}
         <div>
           <label className="block text-sm font-semibold mb-1">Category</label>
           <select
@@ -714,8 +778,40 @@ const MaintenanceForm: React.FC<{
             <option value="Upgrade">Upgrade</option>
             <option value="Replacement">Replacement</option>
             <option value="Maintenance">Maintenance</option>
+            <option value="Cleaning">Cleaning</option>
           </select>
         </div>
+        <div>
+          <label className="block text-sm font-semibold mb-1">
+            <span className="text-orange-600">🎯 Priority</span>
+          </label>
+          <select
+            value={formData.priority}
+            onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+            className="w-full px-3 py-2 border rounded"
+          >
+            <option value="Low">🟢 Low</option>
+            <option value="Medium">🟡 Medium</option>
+            <option value="High">🟠 High</option>
+            <option value="Critical">🔴 Critical</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-1">
+            <span className="text-green-600">📊 Status</span>
+          </label>
+          <select
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            className="w-full px-3 py-2 border rounded"
+          >
+            <option value="Pending">⏳ Pending</option>
+            <option value="Completed">✅ Completed</option>
+            <option value="Cancelled">❌ Cancelled</option>
+          </select>
+        </div>
+
+        {/* Row 4 */}
         <div>
           <label className="block text-sm font-semibold mb-1">Service Provider</label>
           <input
@@ -723,8 +819,36 @@ const MaintenanceForm: React.FC<{
             value={formData.service_provider}
             onChange={(e) => setFormData({ ...formData, service_provider: e.target.value })}
             className="w-full px-3 py-2 border rounded"
+            placeholder="e.g., Tech Solutions Ltd"
           />
         </div>
+        <div>
+          <label className="block text-sm font-semibold mb-1">
+            <span className="text-purple-600">📄 Invoice Number</span>
+          </label>
+          <input
+            type="text"
+            value={formData.invoice_number}
+            onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+            className="w-full px-3 py-2 border rounded"
+            placeholder="e.g., INV-2025-001"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-1">
+            <span className="text-indigo-600">🛡️ Warranty Status</span>
+          </label>
+          <select
+            value={formData.warranty_status}
+            onChange={(e) => setFormData({ ...formData, warranty_status: e.target.value })}
+            className="w-full px-3 py-2 border rounded"
+          >
+            <option value="In Warranty">✅ In Warranty</option>
+            <option value="Out of Warranty">❌ Out of Warranty</option>
+          </select>
+        </div>
+
+        {/* Row 5 */}
         <div>
           <label className="block text-sm font-semibold mb-1">Department</label>
           <input
@@ -732,28 +856,34 @@ const MaintenanceForm: React.FC<{
             value={formData.department}
             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
             className="w-full px-3 py-2 border rounded"
+            placeholder="e.g., IT, HR, Finance"
           />
         </div>
-        <div className="col-span-2">
+
+        {/* Row 6 - Full width */}
+        <div className="col-span-3">
           <label className="block text-sm font-semibold mb-1">Description</label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full px-3 py-2 border rounded"
             rows={3}
+            placeholder="Detailed description of maintenance work..."
           />
         </div>
-        <div className="col-span-2 flex gap-3">
+
+        {/* Buttons */}
+        <div className="col-span-3 flex gap-3 mt-2">
           <button
             type="submit"
-            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
+            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold transition"
           >
-            Add Maintenance Cost
+            💰 Add Maintenance Cost
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-3 bg-gray-300 rounded-lg hover:bg-gray-400 font-semibold"
+            className="px-6 py-3 bg-gray-300 rounded-lg hover:bg-gray-400 font-semibold transition"
           >
             Cancel
           </button>

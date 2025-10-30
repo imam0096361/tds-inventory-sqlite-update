@@ -196,12 +196,20 @@ export interface MaintenanceCost {
   asset_type: string;
   asset_id: string;
   asset_name?: string;
+  username?: string;  // NEW: User who uses the asset
   cost: number;
   date: string;
   description?: string;
   service_provider?: string;
   category?: string;
   department?: string;
+  status?: 'Pending' | 'Completed' | 'Cancelled';  // NEW: Maintenance status
+  priority?: 'Low' | 'Medium' | 'High' | 'Critical';  // NEW: Priority level
+  invoice_number?: string;  // NEW: Invoice tracking
+  warranty_status?: 'In Warranty' | 'Out of Warranty';  // NEW: Warranty info
+  approval_status?: 'Pending' | 'Approved' | 'Rejected';  // NEW: Approval workflow
+  approved_by?: string;  // NEW: Who approved
+  completion_date?: string;  // NEW: When maintenance was completed
   created_by?: string;
   created_at?: string;
 }
