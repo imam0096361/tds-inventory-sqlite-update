@@ -1063,7 +1063,7 @@ app.get('/api/pcs', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/pcs', authenticateToken, validateInput, async (req, res) => {
-    const { id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
+    const { id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields, purchase_cost, purchase_date, warranty_end, supplier, depreciation_years } = req.body;
 
     // Validate required fields
     const missing = validateRequired(['id', 'department', 'pcName'], req.body);
@@ -1085,8 +1085,8 @@ app.post('/api/pcs', authenticateToken, validateInput, async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO pcs (id, department, ip, "pcName", username, motherboard, cpu, ram, storage, monitor, os, status, floor, "customFields") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
-            [id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, JSON.stringify(customFields || {})]
+            'INSERT INTO pcs (id, department, ip, "pcName", username, motherboard, cpu, ram, storage, monitor, os, status, floor, "customFields", purchase_cost, purchase_date, warranty_end, supplier, depreciation_years) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)',
+            [id, department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, JSON.stringify(customFields || {}), purchase_cost || null, purchase_date || null, warranty_end || null, supplier || null, depreciation_years || null]
         );
         res.json({ id });
     } catch (err) {
@@ -1096,11 +1096,11 @@ app.post('/api/pcs', authenticateToken, validateInput, async (req, res) => {
 });
 
 app.put('/api/pcs/:id', authenticateToken, async (req, res) => {
-    const { department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields } = req.body;
+    const { department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, customFields, purchase_cost, purchase_date, warranty_end, supplier, depreciation_years } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE pcs SET department = $1, ip = $2, "pcName" = $3, username = $4, motherboard = $5, cpu = $6, ram = $7, storage = $8, monitor = $9, os = $10, status = $11, floor = $12, "customFields" = $13 WHERE id = $14',
-            [department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, JSON.stringify(customFields || {}), req.params.id]
+            'UPDATE pcs SET department = $1, ip = $2, "pcName" = $3, username = $4, motherboard = $5, cpu = $6, ram = $7, storage = $8, monitor = $9, os = $10, status = $11, floor = $12, "customFields" = $13, purchase_cost = $14, purchase_date = $15, warranty_end = $16, supplier = $17, depreciation_years = $18 WHERE id = $19',
+            [department, ip, pcName, username, motherboard, cpu, ram, storage, monitor, os, status, floor, JSON.stringify(customFields || {}), purchase_cost || null, purchase_date || null, warranty_end || null, supplier || null, depreciation_years || null, req.params.id]
         );
         res.json({ changes: result.rowCount });
     } catch (err) {
@@ -1128,11 +1128,11 @@ app.get('/api/laptops', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/laptops', authenticateToken, async (req, res) => {
-    const { id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
+    const { id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields, purchase_cost, purchase_date, warranty_end, supplier, depreciation_years } = req.body;
     try {
         await pool.query(
-            'INSERT INTO laptops (id, "pcName", username, brand, model, cpu, "serialNumber", ram, storage, "userStatus", department, date, "hardwareStatus", "customFields") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
-            [id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, JSON.stringify(customFields || {})]
+            'INSERT INTO laptops (id, "pcName", username, brand, model, cpu, "serialNumber", ram, storage, "userStatus", department, date, "hardwareStatus", "customFields", purchase_cost, purchase_date, warranty_end, supplier, depreciation_years) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)',
+            [id, pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, JSON.stringify(customFields || {}), purchase_cost || null, purchase_date || null, warranty_end || null, supplier || null, depreciation_years || null]
         );
         res.json({ id });
     } catch (err) {
@@ -1141,11 +1141,11 @@ app.post('/api/laptops', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/laptops/:id', authenticateToken, async (req, res) => {
-    const { pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields } = req.body;
+    const { pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, customFields, purchase_cost, purchase_date, warranty_end, supplier, depreciation_years } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE laptops SET "pcName" = $1, username = $2, brand = $3, model = $4, cpu = $5, "serialNumber" = $6, ram = $7, storage = $8, "userStatus" = $9, department = $10, date = $11, "hardwareStatus" = $12, "customFields" = $13 WHERE id = $14',
-            [pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, JSON.stringify(customFields || {}), req.params.id]
+            'UPDATE laptops SET "pcName" = $1, username = $2, brand = $3, model = $4, cpu = $5, "serialNumber" = $6, ram = $7, storage = $8, "userStatus" = $9, department = $10, date = $11, "hardwareStatus" = $12, "customFields" = $13, purchase_cost = $14, purchase_date = $15, warranty_end = $16, supplier = $17, depreciation_years = $18 WHERE id = $19',
+            [pcName, username, brand, model, cpu, serialNumber, ram, storage, userStatus, department, date, hardwareStatus, JSON.stringify(customFields || {}), purchase_cost || null, purchase_date || null, warranty_end || null, supplier || null, depreciation_years || null, req.params.id]
         );
         res.json({ changes: result.rowCount });
     } catch (err) {
@@ -1173,11 +1173,11 @@ app.get('/api/servers', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/servers', authenticateToken, async (req, res) => {
-    const { id, serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields } = req.body;
+    const { id, serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields, purchase_cost, purchase_date, warranty_end, supplier, depreciation_years } = req.body;
     try {
         await pool.query(
-            'INSERT INTO servers (id, "serverID", brand, model, cpu, "totalCores", ram, storage, raid, status, department, "customFields") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)',
-            [id, serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, JSON.stringify(customFields || {})]
+            'INSERT INTO servers (id, "serverID", brand, model, cpu, "totalCores", ram, storage, raid, status, department, "customFields", purchase_cost, purchase_date, warranty_end, supplier, depreciation_years) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)',
+            [id, serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, JSON.stringify(customFields || {}), purchase_cost || null, purchase_date || null, warranty_end || null, supplier || null, depreciation_years || null]
         );
         res.json({ id });
     } catch (err) {
@@ -1186,11 +1186,11 @@ app.post('/api/servers', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/servers/:id', authenticateToken, async (req, res) => {
-    const { serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields } = req.body;
+    const { serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, customFields, purchase_cost, purchase_date, warranty_end, supplier, depreciation_years } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE servers SET "serverID" = $1, brand = $2, model = $3, cpu = $4, "totalCores" = $5, ram = $6, storage = $7, raid = $8, status = $9, department = $10, "customFields" = $11 WHERE id = $12',
-            [serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, JSON.stringify(customFields || {}), req.params.id]
+            'UPDATE servers SET "serverID" = $1, brand = $2, model = $3, cpu = $4, "totalCores" = $5, ram = $6, storage = $7, raid = $8, status = $9, department = $10, "customFields" = $11, purchase_cost = $12, purchase_date = $13, warranty_end = $14, supplier = $15, depreciation_years = $16 WHERE id = $17',
+            [serverID, brand, model, cpu, totalCores, ram, storage, raid, status, department, JSON.stringify(customFields || {}), purchase_cost || null, purchase_date || null, warranty_end || null, supplier || null, depreciation_years || null, req.params.id]
         );
         res.json({ changes: result.rowCount });
     } catch (err) {
