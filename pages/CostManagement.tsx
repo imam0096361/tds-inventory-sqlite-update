@@ -17,10 +17,12 @@ const CostManagement: React.FC = () => {
   // Maintenance Costs State
   const [maintenanceCosts, setMaintenanceCosts] = useState<MaintenanceCost[]>([]);
   const [showAddMaintenance, setShowAddMaintenance] = useState(false);
+  const [editingMaintenance, setEditingMaintenance] = useState<MaintenanceCost | null>(null);
 
   // Budgets State
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [showAddBudget, setShowAddBudget] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // Depreciation State
   const [depreciationData, setDepreciationData] = useState<DepreciationData[]>([]);
@@ -34,28 +36,18 @@ const CostManagement: React.FC = () => {
     if (activeTab === 'maintenance') fetchMaintenanceCosts();
     if (activeTab === 'budgets') fetchBudgets();
     if (activeTab === 'depreciation') fetchDepreciation();
-  }, [activeTab]);
+    if (activeTab === 'dashboard') fetchDashboardData();
+  }, [activeTab, selectedYear]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
-      const [summaryRes, deptRes, trendRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/financial/summary`, { headers }),
-        fetch(`${API_BASE_URL}/api/financial/cost-by-department`, { headers }),
-        fetch(`${API_BASE_URL}/api/financial/monthly-trend?months=6`, { headers })
+      const [summaryData, deptData, trendData] = await Promise.all([
+        apiFetch('/api/financial/summary'),
+        apiFetch('/api/financial/cost-by-department'),
+        apiFetch('/api/financial/monthly-trend?months=6')
       ]);
-
-      if (!summaryRes.ok || !deptRes.ok || !trendRes.ok) {
-        throw new Error('Failed to fetch financial data');
-      }
-
-      const summaryData = await summaryRes.json();
-      const deptData = await deptRes.json();
-      const trendData = await trendRes.json();
 
       setSummary(summaryData);
       setDeptCosts(deptData);
@@ -79,8 +71,7 @@ const CostManagement: React.FC = () => {
 
   const fetchBudgets = async () => {
     try {
-      const currentYear = new Date().getFullYear();
-      const data = await apiFetch(`/api/budgets?year=${currentYear}`);
+      const data = await apiFetch(`/api/budgets?year=${selectedYear}`);
       setBudgets(data);
     } catch (err: any) {
       setError(err.message);
@@ -98,18 +89,33 @@ const CostManagement: React.FC = () => {
 
   const handleAddMaintenance = async (formData: Partial<MaintenanceCost>) => {
     try {
-      await apiFetch('/api/maintenance-costs', {
-        method: 'POST',
-        body: JSON.stringify({
-          id: generateUUID(),
-          ...formData
-        })
-      });
+      if (editingMaintenance) {
+        // Update existing
+        await apiFetch(`/api/maintenance-costs/${editingMaintenance.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData)
+        });
+      } else {
+        // Add new
+        await apiFetch('/api/maintenance-costs', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: generateUUID(),
+            ...formData
+          })
+        });
+      }
       fetchMaintenanceCosts();
       setShowAddMaintenance(false);
+      setEditingMaintenance(null);
     } catch (err: any) {
       alert('Error: ' + err.message);
     }
+  };
+
+  const handleEditMaintenance = (cost: MaintenanceCost) => {
+    setEditingMaintenance(cost);
+    setShowAddMaintenance(true);
   };
 
   const handleDeleteMaintenance = async (id: string) => {
@@ -217,6 +223,21 @@ const CostManagement: React.FC = () => {
       {/* Dashboard Tab */}
       {activeTab === 'dashboard' && summary && (
         <div className="space-y-6">
+          {/* Year Selector */}
+          <div className="flex justify-end">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-lg font-semibold"
+            >
+              <option value={2023}>2023</option>
+              <option value={2024}>2024</option>
+              <option value={2025}>2025</option>
+              <option value={2026}>2026</option>
+              <option value={2027}>2027</option>
+              <option value={2028}>2028</option>
+            </select>
+          </div>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
@@ -356,7 +377,11 @@ const CostManagement: React.FC = () => {
           {showAddMaintenance && (
             <MaintenanceForm
               onSubmit={handleAddMaintenance}
-              onCancel={() => setShowAddMaintenance(false)}
+              onCancel={() => {
+                setShowAddMaintenance(false);
+                setEditingMaintenance(null);
+              }}
+              initialData={editingMaintenance || undefined}
             />
           )}
 
@@ -429,12 +454,20 @@ const CostManagement: React.FC = () => {
                             {formatCurrency(cost.cost)}
                           </td>
                           <td className="px-3 py-2 text-center">
-                            <button
-                              onClick={() => handleDeleteMaintenance(cost.id)}
-                              className="text-red-600 hover:text-red-800 font-semibold text-xs px-2 py-1 rounded hover:bg-red-50"
-                            >
-                              🗑️ Delete
-                            </button>
+                            <div className="flex gap-2 justify-center">
+                              <button
+                                onClick={() => handleEditMaintenance(cost)}
+                                className="text-blue-600 hover:text-blue-800 font-semibold text-xs px-2 py-1 rounded hover:bg-blue-50"
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMaintenance(cost.id)}
+                                className="text-red-600 hover:text-red-800 font-semibold text-xs px-2 py-1 rounded hover:bg-red-50"
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -451,7 +484,21 @@ const CostManagement: React.FC = () => {
       {activeTab === 'budgets' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Budget Planning ({new Date().getFullYear()})</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold">Budget Planning</h2>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-lg font-semibold"
+              >
+                <option value={2023}>2023</option>
+                <option value={2024}>2024</option>
+                <option value={2025}>2025</option>
+                <option value={2026}>2026</option>
+                <option value={2027}>2027</option>
+                <option value={2028}>2028</option>
+              </select>
+            </div>
             <button
               onClick={() => setShowAddBudget(true)}
               className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold"
@@ -469,7 +516,7 @@ const CostManagement: React.FC = () => {
                     body: JSON.stringify({
                       id: generateUUID(),
                       ...formData,
-                      year: new Date().getFullYear()
+                      year: selectedYear
                     })
                   });
                   fetchBudgets();
@@ -628,22 +675,23 @@ const CostManagement: React.FC = () => {
 const MaintenanceForm: React.FC<{
   onSubmit: (data: Partial<MaintenanceCost>) => void;
   onCancel: () => void;
-}> = ({ onSubmit, onCancel }) => {
+  initialData?: MaintenanceCost;
+}> = ({ onSubmit, onCancel, initialData }) => {
   const [formData, setFormData] = useState({
-    asset_type: 'PC',
-    asset_id: '',
-    asset_name: '',
-    username: '',
-    cost: '',
-    date: new Date().toISOString().split('T')[0],
-    description: '',
-    service_provider: '',
-    category: 'Repair',
-    department: '',
-    status: 'Pending',
-    priority: 'Medium',
-    invoice_number: '',
-    warranty_status: 'Out of Warranty'
+    asset_type: initialData?.asset_type || 'PC',
+    asset_id: initialData?.asset_id || '',
+    asset_name: initialData?.asset_name || '',
+    username: initialData?.username || '',
+    cost: initialData?.cost?.toString() || '',
+    date: initialData?.date || new Date().toISOString().split('T')[0],
+    description: initialData?.description || '',
+    service_provider: initialData?.service_provider || '',
+    category: initialData?.category || 'Repair',
+    department: initialData?.department || '',
+    status: initialData?.status || 'Pending',
+    priority: initialData?.priority || 'Medium',
+    invoice_number: initialData?.invoice_number || '',
+    warranty_status: initialData?.warranty_status || 'Out of Warranty'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -656,7 +704,7 @@ const MaintenanceForm: React.FC<{
 
   return (
     <div className="bg-white p-6 rounded-xl border-2 border-blue-300 shadow-lg">
-      <h3 className="text-xl font-bold mb-4">Add Maintenance Cost</h3>
+      <h3 className="text-xl font-bold mb-4">{initialData ? 'Edit Maintenance Cost' : 'Add Maintenance Cost'}</h3>
       <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-4">
         {/* Row 1 */}
         <div>
@@ -847,7 +895,7 @@ const MaintenanceForm: React.FC<{
             type="submit"
             className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold transition"
           >
-            💰 Add Maintenance Cost
+            {initialData ? '💾 Update Maintenance Cost' : '💰 Add Maintenance Cost'}
           </button>
           <button
             type="button"
