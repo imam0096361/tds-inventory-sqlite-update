@@ -25,6 +25,7 @@ const emptyFormState: Omit<ServerInfoEntry, 'id'> = {
     raid: '',
     status: 'Online',
     customFields: {},
+    depreciation_years: 7
 };
 
 export const ServerInfo: React.FC = () => {
@@ -312,6 +313,17 @@ export const ServerInfo: React.FC = () => {
                         <option value="Offline">Offline</option>
                         <option value="Maintenance">Maintenance</option>
                     </select>
+                </div>
+
+                {/* Cost Management Fields */}
+                <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">💰 Cost Information (Optional)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="number" name="purchase_cost" value={formData.purchase_cost || ''} onChange={handleChange} placeholder="Purchase Cost (৳)" className="p-2 border rounded" />
+                        <input type="date" name="purchase_date" value={formData.purchase_date || ''} onChange={handleChange} className="p-2 border rounded" />
+                        <input type="date" name="warranty_end" value={formData.warranty_end || ''} onChange={handleChange} placeholder="Warranty End Date" className="p-2 border rounded" />
+                        <input type="text" name="supplier" value={formData.supplier || ''} onChange={handleChange} placeholder="Supplier/Vendor" className="p-2 border rounded" />
+                    </div>
                 </div>
 
                 {serverCustomFields.length > 0 && (

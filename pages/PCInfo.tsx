@@ -28,6 +28,7 @@ const emptyFormState: Omit<PCInfoEntry, 'id'> = {
     status: 'OK',
     floor: 7,
     customFields: {},
+    depreciation_years: 5
 };
 
 export const PCInfo: React.FC = () => {
@@ -158,8 +159,9 @@ export const PCInfo: React.FC = () => {
             return;
         }
 
-        const isNumber = e.target.type === 'select-one' && name === 'floor';
-        setFormData(prev => ({ ...prev, [name]: isNumber ? Number(value) : value }));
+        const isNumber = e.target.type === 'select-one' && name === 'floor' || e.target.type === 'number' && name === 'purchase_cost';
+        const needsNumberConvert = e.target.type === 'number';
+        setFormData(prev => ({ ...prev, [name]: isNumber || needsNumberConvert ? (value ? Number(value) : '') : value }));
 
         if ((name === 'pcName' || name === 'ip') && formErrors[name as keyof typeof formErrors]) {
             setFormErrors(prev => {
@@ -501,6 +503,17 @@ export const PCInfo: React.FC = () => {
                         <option value={6}>6th Floor</option>
                         <option value={5}>5th Floor</option>
                     </select>
+                </div>
+
+                {/* Cost Management Fields */}
+                <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">💰 Cost Information (Optional)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="number" name="purchase_cost" value={formData.purchase_cost || ''} onChange={handleChange} placeholder="Purchase Cost (৳)" className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
+                        <input type="date" name="purchase_date" value={formData.purchase_date || ''} onChange={handleChange} className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
+                        <input type="date" name="warranty_end" value={formData.warranty_end || ''} onChange={handleChange} placeholder="Warranty End Date" className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
+                        <input type="text" name="supplier" value={formData.supplier || ''} onChange={handleChange} placeholder="Supplier/Vendor" className="p-2 border rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500 transition" />
+                    </div>
                 </div>
 
                 {pcCustomFields.length > 0 && (

@@ -28,6 +28,7 @@ const emptyFormState: Omit<LaptopInfoEntry, 'id'> = {
     date: '',
     hardwareStatus: 'Good',
     customFields: {},
+    depreciation_years: 3
 };
 
 export const LaptopInfo: React.FC = () => {
@@ -140,7 +141,8 @@ export const LaptopInfo: React.FC = () => {
             }));
             return;
         }
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const isNumber = e.target.type === 'number';
+        setFormData(prev => ({ ...prev, [name]: isNumber ? (value ? Number(value) : '') : value }));
     };
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -425,6 +427,17 @@ export const LaptopInfo: React.FC = () => {
                         <option value="Battery Problem">Battery Problem</option>
                         <option value="Platform Problem">Platform Problem</option>
                     </select>
+                </div>
+
+                {/* Cost Management Fields */}
+                <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">💰 Cost Information (Optional)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="number" name="purchase_cost" value={formData.purchase_cost || ''} onChange={handleChange} placeholder="Purchase Cost (৳)" className="p-2 border rounded" />
+                        <input type="date" name="purchase_date" value={formData.purchase_date || ''} onChange={handleChange} className="p-2 border rounded" />
+                        <input type="date" name="warranty_end" value={formData.warranty_end || ''} onChange={handleChange} placeholder="Warranty End Date" className="p-2 border rounded" />
+                        <input type="text" name="supplier" value={formData.supplier || ''} onChange={handleChange} placeholder="Supplier/Vendor" className="p-2 border rounded" />
+                    </div>
                 </div>
 
                 {laptopCustomFields.length > 0 && (

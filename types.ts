@@ -32,6 +32,11 @@ export interface ServerInfoEntry {
   status: 'Online' | 'Offline' | 'Maintenance';
   department?: string;
   customFields?: Record<string, string>;
+  purchase_cost?: number;
+  purchase_date?: string;
+  warranty_end?: string;
+  supplier?: string;
+  depreciation_years?: number;
 }
 
 export interface LaptopInfoEntry {
@@ -49,6 +54,11 @@ export interface LaptopInfoEntry {
   date: string;
   hardwareStatus: 'Good' | 'Battery Problem' | 'Platform Problem';
   customFields?: Record<string, string>;
+  purchase_cost?: number;
+  purchase_date?: string;
+  warranty_end?: string;
+  supplier?: string;
+  depreciation_years?: number;
 }
 
 export interface PCInfoEntry {
@@ -66,6 +76,11 @@ export interface PCInfoEntry {
   status: 'OK' | 'NO' | 'Repair';
   floor: 5 | 6 | 7;
   customFields?: Record<string, string>;
+  purchase_cost?: number;
+  purchase_date?: string;
+  warranty_end?: string;
+  supplier?: string;
+  depreciation_years?: number;
 }
 
 export interface PieChartData {
