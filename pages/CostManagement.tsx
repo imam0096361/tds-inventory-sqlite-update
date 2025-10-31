@@ -23,6 +23,7 @@ const CostManagement: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [showQuickSetup, setShowQuickSetup] = useState(false);
 
   // Depreciation State
   const [depreciationData, setDepreciationData] = useState<DepreciationData[]>([]);
@@ -499,12 +500,20 @@ const CostManagement: React.FC = () => {
                 <option value={2028}>2028</option>
               </select>
             </div>
-            <button
-              onClick={() => setShowAddBudget(true)}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold"
-            >
-              + Add Budget
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowQuickSetup(true)}
+                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold"
+              >
+                ⚡ Quick Setup IT 2026
+              </button>
+              <button
+                onClick={() => setShowAddBudget(true)}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold"
+              >
+                + Add Budget
+              </button>
+            </div>
           </div>
 
           {showAddBudget && (
@@ -529,9 +538,94 @@ const CostManagement: React.FC = () => {
             />
           )}
 
+          {showQuickSetup && (
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-xl shadow-lg border-2 border-purple-300">
+              <h3 className="text-xl font-bold mb-4">⚡ Quick Setup: IT Department Budget 2026</h3>
+              <p className="mb-4 text-purple-100">This will create a complete IT department budget for all 4 quarters and all categories.</p>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-purple-800 bg-opacity-50 p-3 rounded">
+                  <p className="text-sm text-purple-200">Hardware</p>
+                  <p className="text-2xl font-bold">500,000৳</p>
+                  <p className="text-xs text-purple-300">125K per quarter</p>
+                </div>
+                <div className="bg-purple-800 bg-opacity-50 p-3 rounded">
+                  <p className="text-sm text-purple-200">Software</p>
+                  <p className="text-2xl font-bold">200,000৳</p>
+                  <p className="text-xs text-purple-300">50K per quarter</p>
+                </div>
+                <div className="bg-purple-800 bg-opacity-50 p-3 rounded">
+                  <p className="text-sm text-purple-200">Maintenance</p>
+                  <p className="text-2xl font-bold">100,000৳</p>
+                  <p className="text-xs text-purple-300">25K per quarter</p>
+                </div>
+                <div className="bg-purple-800 bg-opacity-50 p-3 rounded">
+                  <p className="text-sm text-purple-200">Licenses</p>
+                  <p className="text-2xl font-bold">100,000৳</p>
+                  <p className="text-xs text-purple-300">25K per quarter</p>
+                </div>
+              </div>
+              <p className="text-center text-3xl font-bold mb-4">Total: 900,000৳ for 2026</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      const budgetTemplate = [
+                        { department: 'IT', category: 'Hardware', quarter: 1, amount: 125000 },
+                        { department: 'IT', category: 'Hardware', quarter: 2, amount: 125000 },
+                        { department: 'IT', category: 'Hardware', quarter: 3, amount: 125000 },
+                        { department: 'IT', category: 'Hardware', quarter: 4, amount: 125000 },
+                        { department: 'IT', category: 'Software', quarter: 1, amount: 50000 },
+                        { department: 'IT', category: 'Software', quarter: 2, amount: 50000 },
+                        { department: 'IT', category: 'Software', quarter: 3, amount: 50000 },
+                        { department: 'IT', category: 'Software', quarter: 4, amount: 50000 },
+                        { department: 'IT', category: 'Maintenance', quarter: 1, amount: 25000 },
+                        { department: 'IT', category: 'Maintenance', quarter: 2, amount: 25000 },
+                        { department: 'IT', category: 'Maintenance', quarter: 3, amount: 25000 },
+                        { department: 'IT', category: 'Maintenance', quarter: 4, amount: 25000 },
+                        { department: 'IT', category: 'Licenses', quarter: 1, amount: 25000 },
+                        { department: 'IT', category: 'Licenses', quarter: 2, amount: 25000 },
+                        { department: 'IT', category: 'Licenses', quarter: 3, amount: 25000 },
+                        { department: 'IT', category: 'Licenses', quarter: 4, amount: 25000 }
+                      ];
+
+                      for (const budget of budgetTemplate) {
+                        await apiFetch('/api/budgets', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            id: generateUUID(),
+                            department: budget.department,
+                            category: budget.category,
+                            quarter: budget.quarter,
+                            allocated_amount: budget.amount,
+                            spent_amount: 0,
+                            year: selectedYear
+                          })
+                        });
+                      }
+                      fetchBudgets();
+                      setShowQuickSetup(false);
+                      alert('✅ IT Department budget created for 2026! Total: 900,000৳');
+                    } catch (err: any) {
+                      alert('Error: ' + err.message);
+                    }
+                  }}
+                  className="flex-1 bg-white text-purple-700 px-6 py-3 rounded-lg hover:bg-purple-50 font-semibold transition"
+                >
+                  ✅ Create Budgets for 2026
+                </button>
+                <button
+                  onClick={() => setShowQuickSetup(false)}
+                  className="px-6 py-3 bg-purple-800 text-white rounded-lg hover:bg-purple-900 font-semibold transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
             {budgets.length === 0 ? (
-              <p className="text-gray-500 text-center py-12">No budgets defined yet</p>
+              <p className="text-gray-500 text-center py-12">No budgets defined yet. Click "⚡ Quick Setup IT 2026" to get started!</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
