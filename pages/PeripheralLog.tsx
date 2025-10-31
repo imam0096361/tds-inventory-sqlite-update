@@ -250,6 +250,7 @@ export const PeripheralLog: React.FC = () => {
                             <tr>
                                 <SortableHeader<PeripheralLogEntry> label="Product Name" sortKey="productName" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<PeripheralLogEntry> label="Serial Number" sortKey="serialNumber" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
+                                <SortableHeader<PeripheralLogEntry> label="Type" sortKey="connectionType" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<PeripheralLogEntry> label="Department" sortKey="department" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<PeripheralLogEntry> label="User" sortKey="pcUsername" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
                                 <SortableHeader<PeripheralLogEntry> label="Date" sortKey="date" sortConfig={sortConfig} requestSort={requestSort} className="text-left" />
@@ -262,6 +263,19 @@ export const PeripheralLog: React.FC = () => {
                                 <tr key={log.id} onClick={() => handleViewDetails(log)} className="hover:bg-gray-50 cursor-pointer">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{log.productName}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.serialNumber}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        {log.connectionType ? (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                                log.connectionType === 'Wireless' 
+                                                    ? 'bg-blue-100 text-blue-800' 
+                                                    : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {log.connectionType === 'Wireless' ? '📶 Wireless' : '🖱️ Wired'}
+                                            </span>
+                                        ) : (
+                                            <span className="text-gray-400">—</span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.department || 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.pcUsername || 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{log.date}</td>
@@ -286,6 +300,11 @@ export const PeripheralLog: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input type="text" name="productName" value={formData.productName} onChange={handleChange} placeholder="Product Name" className="p-2 border rounded" />
                     <input type="text" name="serialNumber" value={formData.serialNumber} onChange={handleChange} placeholder="Serial Number" className="p-2 border rounded" />
+                    <select name="connectionType" value={formData.connectionType || ''} onChange={handleChange} className="p-2 border rounded bg-white">
+                        <option value="">Select Type</option>
+                        <option value="Wired">🖱️ Wired</option>
+                        <option value="Wireless">📶 Wireless</option>
+                    </select>
                     <input type="text" name="pcName" value={formData.pcName} onChange={handleChange} placeholder="PC Name" className="p-2 border rounded" />
                     <input type="text" name="pcUsername" value={formData.pcUsername} onChange={handleChange} placeholder="PC Username" className="p-2 border rounded" />
                     <input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="Department" className="p-2 border rounded" />

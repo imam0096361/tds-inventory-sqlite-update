@@ -11,6 +11,7 @@ export interface PeripheralLogEntry {
   time: string;
   servicedBy: string;
   comment: string;
+  connectionType?: 'Wired' | 'Wireless';
 }
 
 export interface DepartmentAssetSummary {
