@@ -289,6 +289,43 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Charts powered by Recharts
 - Database management with SQLite3
 
+## 📖 Documentation
+
+### 📚 Complete Documentation Suite
+
+**For comprehensive information, we have three main documentation files:**
+
+#### 1. [⚡ QUICK_REFERENCE.md](./QUICK_REFERENCE.md) - Start Here!
+Quick lookup guide for developers, IDEs, and LLMs:
+- File structure overview
+- All features at a glance
+- API endpoints quick reference
+- Common tasks and troubleshooting
+- Quick start commands
+
+#### 2. [📚 FULL_APPLICATION_DOCUMENTATION.md](./FULL_APPLICATION_DOCUMENTATION.md) - Complete Guide
+Comprehensive documentation (27,000+ lines):
+- Complete feature catalog
+- Technical architecture details
+- Database schema and API endpoints
+- Development and deployment guides
+- Feature management instructions (how to add/remove features)
+- Best practices and conventions
+- Security implementation
+- Performance optimization
+
+#### 3. [📝 FEATURES_CHANGELOG.md](./FEATURES_CHANGELOG.md) - Change Tracking
+Track all features added and removed:
+- Current features list (32+)
+- Feature history by version
+- Planned features roadmap
+- Feature request template
+- Maintenance checklist
+
+**For quick lookups:** Use QUICK_REFERENCE.md  
+**For comprehensive details:** Use FULL_APPLICATION_DOCUMENTATION.md  
+**For feature tracking:** Use FEATURES_CHANGELOG.md
+
 ## 📞 Support
 
 For support, email your-email@example.com or open an issue in the repository.
