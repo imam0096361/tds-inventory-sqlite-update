@@ -275,10 +275,17 @@ async function initDatabase() {
             )
         `);
 
-        // Create default admin user if not exists (password: admin123)
+        // SECURITY FIX: Create default admin user with random secure password
         const adminCheck = await client.query(`SELECT * FROM users WHERE username = 'admin'`);
         if (adminCheck.rows.length === 0) {
-            const hashedPassword = await bcrypt.hash('admin123', 10);
+            const crypto = require('crypto');
+
+            // Generate cryptographically secure random password
+            const randomPassword = crypto.randomBytes(12).toString('base64')
+                .replace(/[+/=]/g, '')  // Remove special chars that might cause issues
+                .slice(0, 12) + '@Aa1';  // Add complexity requirements
+
+            const hashedPassword = await bcrypt.hash(randomPassword, 10);
             await client.query(`
                 INSERT INTO users (id, username, password, full_name, email, role, department)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -291,7 +298,20 @@ async function initDatabase() {
                 'admin',
                 'IT'
             ]);
-            console.log('✅ Default admin user created (username: admin, password: admin123)');
+
+            console.log('\n╔════════════════════════════════════════════════════════╗');
+            console.log('║          ✅ ADMIN USER CREATED                        ║');
+            console.log('╠════════════════════════════════════════════════════════╣');
+            console.log('║                                                        ║');
+            console.log(`║  Username: admin                                       ║`);
+            console.log(`║  Password: ${randomPassword.padEnd(16, ' ')}                              ║`);
+            console.log('║                                                        ║');
+            console.log('║  ⚠️  SAVE THIS PASSWORD SECURELY!                     ║');
+            console.log('║     It will NOT be shown again.                        ║');
+            console.log('║                                                        ║');
+            console.log('║  📝 Recommended: Change password after first login    ║');
+            console.log('║                                                        ║');
+            console.log('╚════════════════════════════════════════════════════════╝\n');
         }
 
         // ==================== COST MANAGEMENT SCHEMA ====================
@@ -2687,6 +2707,68 @@ app.get('/api/financial/monthly-trend', authenticateToken, isAdminOnly, async (r
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== AI PROXY ENDPOINT ====================
+// SECURITY FIX: Proxy endpoint for AI requests to keep API keys secure
+app.post('/api/ai-proxy', authenticateToken, async (req, res) => {
+    const { prompt, model: requestedModel } = req.body;
+
+    if (!prompt || typeof prompt !== 'string') {
+        return res.status(400).json({
+            success: false,
+            error: 'Prompt is required and must be a string'
+        });
+    }
+
+    if (prompt.length > 10000) {
+        return res.status(400).json({
+            success: false,
+            error: 'Prompt too long (max 10000 characters)'
+        });
+    }
+
+    // Check if AI is enabled
+    if (!genAI || process.env.AI_ENABLED !== 'true') {
+        return res.status(503).json({
+            success: false,
+            error: 'AI Assistant is not enabled'
+        });
+    }
+
+    try {
+        const modelName = requestedModel || 'gemini-2.0-flash-exp';
+        const model = genAI.getGenerativeModel({
+            model: modelName,
+            generationConfig: {
+                temperature: 0.1,
+                topK: 1,
+                topP: 1,
+                maxOutputTokens: 2048,
+            }
+        });
+
+        console.log(`🤖 AI Proxy: Processing request (${prompt.length} chars)`);
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        res.json({
+            success: true,
+            response: text,
+            model: modelName
+        });
+
+        console.log(`✅ AI Proxy: Response generated (${text.length} chars)`);
+
+    } catch (error) {
+        console.error('❌ AI Proxy Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'AI request failed. Please try again.'
+        });
     }
 });
 
